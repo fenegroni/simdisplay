@@ -1,39 +1,56 @@
+#include <windows.h>
+#include <tchar.h>
+
+#include "..\ACCSharedMemory\ACCSharedMemory.h"
+
 #include <stdio.h>
 
-#include <windows.h>
+int main(void)
+{
+    HANDLE phyMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCPhysics), TEXT("Local\\acpmf_physics"));
+    if (!phyMap) {
+        fprintf(stderr, "Error create file mapping for ACCPhysics.\n");
+    }
+    HANDLE graMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCGraphics), TEXT("Local\\acpmf_graphics"));
+    if (!graMap) {
+        fprintf(stderr, "Error create file mapping for ACCGraphics.\n");
+    }
+    HANDLE staMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCStatic), TEXT("Local\\acpmf_static"));
+    if (!staMap) {
+        fprintf(stderr, "Error create file mapping for ACCStatic.\n");
+    }
+    if (!staMap || !graMap || !phyMap) {
+        fprintf(stderr, "Exiting with code 1\n");
+        return 1;
+    }
 
-HANDLE graphics, stat, physics;
+    struct ACCPhysics* phy = (struct ACCPhysics*) MapViewOfFile(phyMap, FILE_MAP_READ, 0, 0, 0);
+    if (!phy) {
+        fprintf(stderr, "Error mapping view ACCPhysics.\n");
+    }
+    struct ACCGraphics* gra = (struct ACCGraphics*) MapViewOfFile(graMap, FILE_MAP_READ, 0, 0, 0);
+    if (!gra) {
+        fprintf(stderr, "Error mapping view ACCGraphics.\n");
+    }
+    struct ACCStatic* sta = (struct ACCStatic*) MapViewOfFile(staMap, FILE_MAP_READ, 0, 0, 0);
+    if (!sta) {
+        fprintf(stderr, "Error mapping view ACCStatic.\n");
+    }
 
-int main(void) {
-	fprintf(stderr, "Opening mmap'd files.");
+    if (!phy || !gra || !sta) {
+        fprintf(stderr, "Exiting with code 2\n");
+        return 2;
+    }
 
-	HANDLE hFile = CreateFileA("C:\\tmp\\x.txt", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    // Here we need to put the loop that writes to the serial port:
+    // each serial port communication is a start of comms marker, then a byte telling how many bytes follow,
+    // then 
 
-	if (INVALID_HANDLE_VALUE == hFile) {
-		fprintf(stderr, "Could not open file.\n");
-		return 1;
-	}
-
-	HANDLE mapped = CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-	if (!mapped) {
-		fprintf(stderr, "Could not map file.\n");
-		return 1;
-	}
-
-	void* x = MapViewOfFile(mapped, FILE_MAP_READ, 0, 0, 0);
-	if (!x) {
-		fprintf(stderr, "Could not map view of file.\n");
-		return 1;
-	}
-
-	for (int t = 0; t < 1000000000; ++t) {
-		char* y = x;
-		for (int i = 0; i < 4; ++i) {
-			//fprintf(stdout, "%c", *y);
-			++y;
-		}
-		//fprintf(stdout, "\n");
-	}
-
-	return 0;
+    /*
+    for (int i = 0; i < 500; ++i) {
+        fprintf(stdout, "abs = %f, tc = %f\n", phy->abs, phy->tc);
+        Sleep(500);
+    }
+    */
+    return 0;
 }

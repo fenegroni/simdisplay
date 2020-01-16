@@ -45,7 +45,6 @@ int main(void)
     for (int i = 0; i < 1000; ++i) {
         phy->abs = (float) (i % 2);
         phy->tc = (float) ((i+1) % 2);
-        fprintf(stdout, "abs = %f, tc = %f\n", phy->abs, phy->tc);
         Sleep(1000);
     }
     return 0;
