@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 
+
 struct ACCPhysics *phy;
 struct ACCGraphics *gra;
 struct ACCStatic *sta;
@@ -18,10 +19,10 @@ int main(int argc, char *argv[]) {
 		dump = 1;
 	}
 
-	HANDLE phyMap = OpenFileMapping(FILE_MAP_READ, FALSE, TEXT("Local\\acpmf_physics"));
-	if (!phyMap) {
-		fprintf(stderr, "Error: open file mapping for ACCPhysics.\n");
-		err = 1;
+	HANDLE phyMap;
+	while (!(phyMap = OpenFileMapping(FILE_MAP_READ, FALSE, TEXT("Local\\acpmf_physics")))) {
+		fprintf(stderr, "Waiting: open file mapping for ACCPhysics.\n");
+		Sleep(1000);
 	}
 	HANDLE graMap = OpenFileMapping(FILE_MAP_READ, FALSE, TEXT("Local\\acpmf_graphics"));
 	if (!graMap) {
@@ -60,13 +61,35 @@ int main(int argc, char *argv[]) {
 
 	if (dump) {
 		fprintf(stderr, "Read files at 50Hz and dump contents to accdump.bin\n");
-		// Create a local file and save the handle.
-		dumpH = CreateFile(TEXT("accdump.bin"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (INVALID_HANDLE_VALUE == dumpH) {
-			fprintf(stderr, "Could not create accdump.bin\n");
+		HANDLE dumpFile = CreateFile(TEXT("accdump.bin"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (INVALID_HANDLE_VALUE == dumpFile) {
+			fprintf(stderr, "Error: create accdump.bin\n");
 			return 20;
 		}
-		// create a multimedia timer that calls us 1/50 sec = every 20msec
+		HANDLE dumpTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+		if (NULL == dumpTimer) {
+			fprintf(stderr, "Error: create timer.\n");
+			return 30;
+		}
+		LARGE_INTEGER dueTime;
+		dueTime.QuadPart = -200000LL; // 20ms == 50Hz
+		if (!SetWaitableTimer(dumpTimer, &dueTime, 0, NULL, NULL, FALSE)) {
+			printf("Error: SetWaitableTimer: %d\n", GetLastError());
+			return 40;
+		}
+		// dump the memory structures one after the other.
+		DWORD bytesWritten;
+		while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
+			if (!SetWaitableTimer(dumpTimer, &dueTime, 0, NULL, NULL, FALSE)) {
+				printf("Error: SetWaitableTimer: %d\n", GetLastError());
+				return 40;
+			}
+			WriteFile(dumpFile, phy, sizeof(*phy), &bytesWritten, NULL);
+			WriteFile(dumpFile, gra, sizeof(*gra), &bytesWritten, NULL);
+			WriteFile(dumpFile, sta, sizeof(*sta), &bytesWritten, NULL);
+			FlushFileBuffers(dumpFile);
+		}
+		fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
 	} else {
 		HANDLE comPort = CreateFile(L"\\.\\COM3", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 		if (comPort == INVALID_HANDLE_VALUE) {
@@ -75,9 +98,6 @@ int main(int argc, char *argv[]) {
 			return 10;
 		}
 	}
-	// we must wait until something happens after we set a multimedia timer?
-	// Wait on a semaphore?
-	// A Mutex?
-	getch();
+
 	return 0;
 }
