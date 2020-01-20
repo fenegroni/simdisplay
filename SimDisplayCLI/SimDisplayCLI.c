@@ -9,7 +9,6 @@
 struct ACCPhysics *phy;
 struct ACCGraphics *gra;
 struct ACCStatic *sta;
-HANDLE dumpH;
 
 int main(int argc, char *argv[]) {
 	int err = 0;
@@ -66,28 +65,22 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Error: create accdump.bin\n");
 			return 20;
 		}
-		HANDLE dumpTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+		HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
 		if (NULL == dumpTimer) {
 			fprintf(stderr, "Error: create timer.\n");
 			return 30;
 		}
 		LARGE_INTEGER dueTime;
 		dueTime.QuadPart = -200000LL; // 20ms == 50Hz
-		if (!SetWaitableTimer(dumpTimer, &dueTime, 0, NULL, NULL, FALSE)) {
+		if (!SetWaitableTimer(dumpTimer, &dueTime, 20, NULL, NULL, FALSE)) {
 			printf("Error: SetWaitableTimer: %d\n", GetLastError());
 			return 40;
 		}
-		// dump the memory structures one after the other.
 		DWORD bytesWritten;
 		while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
-			if (!SetWaitableTimer(dumpTimer, &dueTime, 0, NULL, NULL, FALSE)) {
-				printf("Error: SetWaitableTimer: %d\n", GetLastError());
-				return 40;
-			}
 			WriteFile(dumpFile, phy, sizeof(*phy), &bytesWritten, NULL);
 			WriteFile(dumpFile, gra, sizeof(*gra), &bytesWritten, NULL);
 			WriteFile(dumpFile, sta, sizeof(*sta), &bytesWritten, NULL);
-			FlushFileBuffers(dumpFile);
 		}
 		fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
 	} else {
