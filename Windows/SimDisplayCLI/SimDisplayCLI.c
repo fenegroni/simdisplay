@@ -5,7 +5,8 @@
 
 #include <stdio.h>
 
-mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **sta) {
+mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **sta)
+{
 	int err = 0;
 
 	HANDLE phyMap;
@@ -46,7 +47,8 @@ mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **s
 	return err;
 }
 
-doSend(void) {
+doSend(void)
+{
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
@@ -64,7 +66,8 @@ doSend(void) {
 	return 0;
 }
 
-doDump(void) {
+doDump(void)
+{
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
@@ -100,7 +103,8 @@ doDump(void) {
 	return 5;
 }
 
-doCsv(void) {
+doCsv(void)
+{
 	fprintf(stderr, "Read accdump.bin contents and write into accdump.csv\n");
 	HANDLE csvFile = CreateFile(TEXT("accdump.csv"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == csvFile) {
@@ -141,24 +145,71 @@ doCsv(void) {
 	return 0;
 }
 
-main(int argc, char *argv[]) {
-	enum { SEND, DUMP, CSV } action = SEND;
+doReplay(void)
+{
+	fprintf(stderr, "Read accdump.bin contents and write into accdump.csv\n");
+	HANDLE csvFile = CreateFile(TEXT("accdump.csv"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == csvFile) {
+		fprintf(stderr, "Error: create accdump.csv: %d\n", GetLastError());
+		return 1;
+	}
+	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == binFile) {
+		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
+		return 2;
+	}
+	int maxCsvRecord = 8192;
+	char *csvRecord = malloc(maxCsvRecord);
+	if (!csvRecord) ExitProcess(1);
+	DWORD writtenBytes;
+	if (!WriteFile(csvFile, csvRecord,
+		snprintf(csvRecord, maxCsvRecord, "Status,Damage 0,Damage 1,Damage 2,Damage 3,Damage 4,PHY Pid,TC Active,ABS Active,TC,TC Cut,ABS,Lights Stage,Flashing Lights\n"),
+		&writtenBytes, NULL)) {
+		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
+		return 3;
+	}
+	int binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
+	char *binBuffer = malloc(binBufferSize);
+	if (!binBuffer) ExitProcess(1);
+	struct ACCPhysics *phy = (struct ACCPhysics *)binBuffer;
+	struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
+	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
+	DWORD readBytes;
+	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
+		if (!WriteFile(csvFile, csvRecord,
+			snprintf(csvRecord, maxCsvRecord, "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%d\n",
+				gra->status, phy->carDamage[0], phy->carDamage[1], phy->carDamage[2], phy->carDamage[3], phy->carDamage[4], phy->tc, phy->abs, gra->TC, gra->TCCut, gra->ABS),
+			&writtenBytes, NULL)) {
+			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
+			return 4;
+		}
+	}
+	return 0;
+}
+
+main(int argc, char *argv[])
+{
+	enum { SEND, DUMP, CSV, REPLAY } action = SEND;
 	
 	if (argc > 1) {
 		if (!strcmp(argv[1], "dump")) {
 			action = DUMP;
-		}
-		else if (!strcmp(argv[1], "csv")) {
+		} else if (!strcmp(argv[1], "csv")) {
 			action = CSV;
+		} else if (!strcmp(argv[1], "replay")) {
+			action = REPLAY;
 		}
 	}
 
-	if (action == SEND) {
+	switch (action) {
+	case SEND:
 		return doSend();
-	} else if (action == DUMP) {
+	case DUMP:
 		return doDump();
-	} else if (action == CSV) {
+	case CSV:
 		return doCsv();
+	case REPLAY:
+		return doReplay();
 	}
 
 	return 0;
