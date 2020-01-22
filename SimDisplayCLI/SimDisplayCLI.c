@@ -1,5 +1,5 @@
 #include <windows.h>
-#include <wchar.h>
+#include <tchar.h>
 
 #include "..\ACCSharedMemory\ACCSharedMemory.h"
 
@@ -101,6 +101,22 @@ doDump(void) {
 }
 
 doCsv(void) {
+	fprintf(stderr, "Read accdump.bin contents and write into accdump.csv\n");
+	HANDLE csvFile = CreateFile(TEXT("accdump.csv"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == csvFile) {
+		fprintf(stderr, "Error: create accdump.csv: %d\n", GetLastError());
+		return 1;
+	}
+	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == csvFile) {
+		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
+		return 2;
+	}
+	// read from the dumpbin file
+	// loop through, populate strcutures
+	// each iteration, dump as a CSV
+	// select a few parameters
+	// they can be arguments in the future.
 	return 0;
 }
 
