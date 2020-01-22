@@ -112,12 +112,12 @@ doCsv(void) {
 		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
 		return 2;
 	}
-	int maxCsvRecord = 1024;
+	int maxCsvRecord = 8192;
 	char *csvRecord = malloc(maxCsvRecord);
 	if (!csvRecord) ExitProcess(1);
 	DWORD writtenBytes;
 	if (!WriteFile(csvFile, csvRecord,
-			snprintf(csvRecord, maxCsvRecord, "PHY Pid,TC Active,ABS Active,Brake,Accelerator\n"),
+			snprintf(csvRecord, maxCsvRecord, "Status,Damage 0,Damage 1,Damage 2,Damage 3,Damage 4,PHY Pid,TC Active,ABS Active,TC,TC Cut,ABS,Lights Stage,Flashing Lights\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
 		return 3;
@@ -125,13 +125,14 @@ doCsv(void) {
 	int binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
 	char *binBuffer = malloc(binBufferSize);
 	if (!binBuffer) ExitProcess(1);
+	struct ACCPhysics *phy = (struct ACCPhysics *)binBuffer;
+	struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
+	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
 	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
-		struct ACCPhysics *phy = (struct ACCPhysics *)binBuffer;
-		struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
-		struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCGraphics));
 		if (!WriteFile(csvFile, csvRecord,
-				snprintf(csvRecord, maxCsvRecord, "%d,%f,%f,%f,%f\n", phy->packetId, phy->tc, phy->abs, phy->brake, phy->gas),
+				snprintf(csvRecord, maxCsvRecord, "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%d\n",
+					gra->status, phy->carDamage[0], phy->carDamage[1], phy->carDamage[2], phy->carDamage[3], phy->carDamage[4], phy->tc, phy->abs, gra->TC, gra->TCCut, gra->ABS),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 4;
