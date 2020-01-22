@@ -108,15 +108,35 @@ doCsv(void) {
 		return 1;
 	}
 	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == csvFile) {
+	if (INVALID_HANDLE_VALUE == binFile) {
 		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
 		return 2;
 	}
-	// read from the dumpbin file
-	// loop through, populate strcutures
-	// each iteration, dump as a CSV
-	// select a few parameters
-	// they can be arguments in the future.
+	int maxCsvRecord = 1024;
+	char *csvRecord = malloc(maxCsvRecord);
+	if (!csvRecord) ExitProcess(1);
+	DWORD writtenBytes;
+	if (!WriteFile(csvFile, csvRecord,
+			snprintf(csvRecord, maxCsvRecord, "PHY Pid,TC Active,ABS Active,Brake,Accelerator\n"),
+			&writtenBytes, NULL)) {
+		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
+		return 3;
+	}
+	int binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
+	char *binBuffer = malloc(binBufferSize);
+	if (!binBuffer) ExitProcess(1);
+	DWORD readBytes;
+	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
+		struct ACCPhysics *phy = (struct ACCPhysics *)binBuffer;
+		struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
+		struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCGraphics));
+		if (!WriteFile(csvFile, csvRecord,
+				snprintf(csvRecord, maxCsvRecord, "%d,%f,%f,%f,%f\n", phy->packetId, phy->tc, phy->abs, phy->brake, phy->gas),
+				&writtenBytes, NULL)) {
+			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
+			return 4;
+		}
+	}
 	return 0;
 }
 
