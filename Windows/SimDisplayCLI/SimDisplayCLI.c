@@ -147,17 +147,48 @@ doCsv(void)
 
 doReplay(void)
 {
-	fprintf(stderr, "Read accdump.bin contents and write into accdump.csv\n");
-	HANDLE csvFile = CreateFile(TEXT("accdump.csv"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == csvFile) {
-		fprintf(stderr, "Error: create accdump.csv: %d\n", GetLastError());
-		return 1;
-	}
+	fprintf(stderr, "Read accdump.bin contents and dump into shared memory at 50Hz\n");
 	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == binFile) {
 		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
 		return 2;
 	}
+
+	HANDLE phyMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCPhysics), TEXT("Local\\acpmf_physics"));
+	if (!phyMap) {
+		fprintf(stderr, "Error create file mapping for ACCPhysics.\n");
+	}
+	HANDLE graMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCGraphics), TEXT("Local\\acpmf_graphics"));
+	if (!graMap) {
+		fprintf(stderr, "Error create file mapping for ACCGraphics.\n");
+	}
+	HANDLE staMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCStatic), TEXT("Local\\acpmf_static"));
+	if (!staMap) {
+		fprintf(stderr, "Error create file mapping for ACCStatic.\n");
+	}
+	if (!staMap || !graMap || !phyMap) {
+		fprintf(stderr, "Exiting with code 1\n");
+		return 1;
+	}
+
+	struct ACCPhysics *phy = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_READ, 0, 0, 0);
+	if (!phy) {
+		fprintf(stderr, "Error mapping view ACCPhysics.\n");
+	}
+	struct ACCGraphics *gra = (struct ACCGraphics *) MapViewOfFile(graMap, FILE_MAP_READ, 0, 0, 0);
+	if (!gra) {
+		fprintf(stderr, "Error mapping view ACCGraphics.\n");
+	}
+	struct ACCStatic *sta = (struct ACCStatic *) MapViewOfFile(staMap, FILE_MAP_READ, 0, 0, 0);
+	if (!sta) {
+		fprintf(stderr, "Error mapping view ACCStatic.\n");
+	}
+
+	if (!phy || !gra || !sta) {
+		fprintf(stderr, "Exiting with code 2\n");
+		return 2;
+	}
+
 	int maxCsvRecord = 8192;
 	char *csvRecord = malloc(maxCsvRecord);
 	if (!csvRecord) ExitProcess(1);
