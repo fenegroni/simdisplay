@@ -151,7 +151,7 @@ doReplay(void)
 	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == binFile) {
 		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
-		return 2;
+		return 1;
 	}
 
 	HANDLE phyMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCPhysics), TEXT("Local\\acpmf_physics"));
@@ -167,42 +167,48 @@ doReplay(void)
 		fprintf(stderr, "Error create file mapping for ACCStatic.\n");
 	}
 	if (!staMap || !graMap || !phyMap) {
-		return 1;
-	}
-
-	struct ACCPhysics *phyView = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_READ, 0, 0, 0);
-	if (!phyView) {
-		fprintf(stderr, "Error mapping view ACCPhysics.\n");
-	}
-	struct ACCGraphics *graView = (struct ACCGraphics *) MapViewOfFile(graMap, FILE_MAP_READ, 0, 0, 0);
-	if (!graView) {
-		fprintf(stderr, "Error mapping view ACCGraphics.\n");
-	}
-	struct ACCStatic *staView = (struct ACCStatic *) MapViewOfFile(staMap, FILE_MAP_READ, 0, 0, 0);
-	if (!staView) {
-		fprintf(stderr, "Error mapping view ACCStatic.\n");
-	}
-
-	if (!phyView || !graView || !staView) {
 		return 2;
 	}
 
-	size_t binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
-	char *binBuffer = HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, binBufferSize);
-	struct ACCPhysics *phyBin = (struct ACCPhysics *)binBuffer;
-	struct ACCGraphics *graBin = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
-	struct ACCStatic *staBin = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
-	DWORD readBytes;
-	// every 20ms, read file and copy memory into structures...
-	// or read three times? we read slower so we can just read directly into the memory map?
-	while (ReadFile(binFile, binBuffer, (DWORD)binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
-		// for each record in the bin file, copy memory to the three structures.
-#pragma warning (push)
-#pragma warning (disable:6387)
-		CopyMemory(phyView, phyBin, sizeof(struct ACCPhysics));
-		CopyMemory(graView, graBin, sizeof(struct ACCGraphics));
-		CopyMemory(staView, staBin, sizeof(struct ACCStatic));
-#pragma warning (pop)
+	struct ACCPhysics *phy = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_READ, 0, 0, 0);
+	if (!phy) {
+		fprintf(stderr, "Error mapping view ACCPhysics.\n");
+	}
+	struct ACCGraphics *gra = (struct ACCGraphics *) MapViewOfFile(graMap, FILE_MAP_READ, 0, 0, 0);
+	if (!gra) {
+		fprintf(stderr, "Error mapping view ACCGraphics.\n");
+	}
+	struct ACCStatic *sta = (struct ACCStatic *) MapViewOfFile(staMap, FILE_MAP_READ, 0, 0, 0);
+	if (!sta) {
+		fprintf(stderr, "Error mapping view ACCStatic.\n");
+	}
+
+	if (!phy || !gra || !sta) {
+		return 3;
+	}
+
+	HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+	if (NULL == dumpTimer) {
+		fprintf(stderr, "Error: create timer.\n");
+		return 4;
+	}
+	LARGE_INTEGER dueTime;
+	dueTime.QuadPart = -200000LL; // 20ms == 50Hz
+	if (!SetWaitableTimer(dumpTimer, &dueTime, 20, NULL, NULL, FALSE)) {
+		printf("Error: SetWaitableTimer: %d\n", GetLastError());
+		return 5;
+	}
+	DWORD bytesRead;
+	while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
+		if (!ReadFile(binFile, phy, sizeof(*phy), &bytesRead, NULL) || bytesRead < sizeof(*phy)) {
+			return 6;
+		}
+		if (!ReadFile(binFile, gra, sizeof(*gra), &bytesRead, NULL) || bytesRead < sizeof(*gra)) {
+			return 6;
+		}
+		if (!ReadFile(binFile, sta, sizeof(*sta), &bytesRead, NULL) || bytesRead < sizeof(*sta)) {
+			return 6;
+		}
 	}
 	return 0;
 }
