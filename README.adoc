@@ -1,0 +1,2 @@
+= simdisplay
+A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
