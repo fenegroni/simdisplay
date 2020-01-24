@@ -5,9 +5,17 @@
 
 #include <stdio.h>
 
-mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **sta)
+typedef enum {
+	ERR_NONE,
+	ERR_TIMER,
+	ERR_MAP,
+	ERR_COM,
+	ERR_FILE, ERR_FILE_WRITE, ERR_FILE_READ
+} Errorcode;
+
+Errorcode mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **sta)
 {
-	int err = 0;
+	Errorcode err = ERR_NONE;
 
 	HANDLE phyMap;
 	while (!(phyMap = OpenFileMapping(FILE_MAP_READ, FALSE, TEXT("Local\\acpmf_physics")))) {
@@ -17,12 +25,12 @@ mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **s
 	HANDLE graMap = OpenFileMapping(FILE_MAP_READ, FALSE, TEXT("Local\\acpmf_graphics"));
 	if (!graMap) {
 		fprintf(stderr, "Error: open file mapping for ACCGraphics.\n");
-		err = 1;
+		err = ERR_MAP;
 	}
 	HANDLE staMap = OpenFileMapping(FILE_MAP_READ, FALSE, TEXT("Local\\acpmf_static"));
 	if (!staMap) {
 		fprintf(stderr, "Error: open file mapping for ACCStatic.\n");
-		err = 1;
+		err = ERR_MAP;
 	}
 	if (err) {
 		return err;
@@ -31,67 +39,71 @@ mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **s
 	*phy = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_READ, 0, 0, 0);
 	if (!phy) {
 		fprintf(stderr, "Error: mapping view ACCPhysics.\n");
-		err = 2;
+		err = ERR_MAP;
 	}
 	*gra = (struct ACCGraphics *) MapViewOfFile(graMap, FILE_MAP_READ, 0, 0, 0);
 	if (!gra) {
 		fprintf(stderr, "Error: mapping view ACCGraphics.\n");
-		err = 2;
+		err = ERR_MAP;
 	}
 	*sta = (struct ACCStatic *) MapViewOfFile(staMap, FILE_MAP_READ, 0, 0, 0);
 	if (!sta) {
-		err = 2;
+		err = ERR_MAP;
 		fprintf(stderr, "Error: mapping view ACCStatic.\n");
 	}
 
 	return err;
 }
 
-doSend(void)
+Errorcode doSend(void)
 {
+	Errorcode err;
+	
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
 
-	if (mapAcpmf(&phy, &gra, &sta)) {
-		return 1;
+	if (err = mapAcpmf(&phy, &gra, &sta)) {
+		return err;
 	}
 
 	HANDLE comPort = CreateFile(L"\\.\\COM3", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (comPort == INVALID_HANDLE_VALUE) {
 		fprintf(stderr, "Error: open serial port \\.\\COM3\n");
-		return 2;
+		return ERR_COM;
 	}
 
 	return 0;
 }
 
-doDump(void)
+Errorcode doDump(void)
 {
+	Errorcode err;
+	
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
 
-	if (mapAcpmf(&phy, &gra, &sta)) {
-		return 1;
+	if (err = mapAcpmf(&phy, &gra, &sta)) {
+		return err;
 	}
 
 	fprintf(stderr, "Read memory at 50Hz and dump contents to accdump.bin\n");
 	HANDLE dumpFile = CreateFile(TEXT("accdump.bin"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == dumpFile) {
 		fprintf(stderr, "Error: create accdump.bin\n");
-		return 2;
+		return ERR_FILE;
 	}
 	HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
 	if (NULL == dumpTimer) {
 		fprintf(stderr, "Error: create timer.\n");
-		return 3;
+		return ERR_TIMER;
 	}
 	LARGE_INTEGER dueTime;
 	dueTime.QuadPart = -200000LL; // 20ms == 50Hz
 	if (!SetWaitableTimer(dumpTimer, &dueTime, 20, NULL, NULL, FALSE)) {
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
-		return 4;
+		return ERR_TIMER;
 	}
 	DWORD bytesWritten;
 	while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
@@ -100,21 +112,21 @@ doDump(void)
 		WriteFile(dumpFile, sta, sizeof(*sta), &bytesWritten, NULL);
 	}
 	fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
-	return 5;
+	return ERR_TIMER;
 }
 
-doCsv(void)
+Errorcode doCsv(void)
 {
 	fprintf(stderr, "Read accdump.bin contents and write into accdump.csv\n");
 	HANDLE csvFile = CreateFile(TEXT("accdump.csv"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == csvFile) {
 		fprintf(stderr, "Error: create accdump.csv: %d\n", GetLastError());
-		return 1;
+		return ERR_FILE;
 	}
 	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == binFile) {
 		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
-		return 2;
+		return ERR_FILE;
 	}
 	int maxCsvRecord = 8192;
 	char *csvRecord = malloc(maxCsvRecord);
@@ -124,7 +136,7 @@ doCsv(void)
 			snprintf(csvRecord, maxCsvRecord, "Status,Damage 0,Damage 1,Damage 2,Damage 3,Damage 4,PHY Pid,TC Active,ABS Active,TC,TC Cut,ABS,Lights Stage,Flashing Lights\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
-		return 3;
+		return ERR_FILE_WRITE;
 	}
 	int binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
 	char *binBuffer = malloc(binBufferSize);
@@ -139,13 +151,13 @@ doCsv(void)
 					gra->status, phy->carDamage[0], phy->carDamage[1], phy->carDamage[2], phy->carDamage[3], phy->carDamage[4], phy->tc, phy->abs, gra->TC, gra->TCCut, gra->ABS),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
-			return 4;
+			return ERR_FILE_WRITE;
 		}
 	}
 	return 0;
 }
 
-doReplay(void)
+Errorcode doReplay(void)
 {
 	fprintf(stderr, "Read accdump.bin contents and dump into shared memory at 50Hz\n");
 	HANDLE phyMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCPhysics), TEXT("Local\\acpmf_physics"));
@@ -161,7 +173,7 @@ doReplay(void)
 		fprintf(stderr, "Error create file mapping for ACCStatic.\n");
 	}
 	if (!staMap || !graMap || !phyMap) {
-		return 2;
+		return ERR_MAP;
 	}
 
 	struct ACCPhysics *phy = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_WRITE, 0, 0, 0);
@@ -178,42 +190,43 @@ doReplay(void)
 	}
 
 	if (!phy || !gra || !sta) {
-		return 3;
+		return ERR_MAP;
 	}
 
 	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == binFile) {
 		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
-		return 1;
+		return ERR_FILE;
 	}
 
 	HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
 	if (NULL == dumpTimer) {
 		fprintf(stderr, "Error: create timer.\n");
-		return 4;
+		return ERR_TIMER;
 	}
 	LARGE_INTEGER dueTime;
 	dueTime.QuadPart = -200000LL; // 20ms == 50Hz
 	if (!SetWaitableTimer(dumpTimer, &dueTime, 20, NULL, NULL, FALSE)) {
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
-		return 5;
+		return ERR_TIMER;
 	}
 	while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
 		DWORD bytesRead;
 		if (!ReadFile(binFile, phy, sizeof(*phy), &bytesRead, NULL) || bytesRead < sizeof(*phy)) {
-			return 6;
+			return ERR_FILE_READ;
 		}
 		if (!ReadFile(binFile, gra, sizeof(*gra), &bytesRead, NULL) || bytesRead < sizeof(*gra)) {
-			return 6;
+			return ERR_FILE_READ;
 		}
 		if (!ReadFile(binFile, sta, sizeof(*sta), &bytesRead, NULL) || bytesRead < sizeof(*sta)) {
-			return 6;
+			return ERR_FILE_READ;
 		}
 	}
-	return 0;
+	fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
+	return ERR_TIMER;
 }
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	enum { SEND, DUMP, CSV, REPLAY } action = SEND;
 	
