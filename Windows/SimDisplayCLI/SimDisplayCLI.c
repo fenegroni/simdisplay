@@ -148,12 +148,6 @@ doCsv(void)
 doReplay(void)
 {
 	fprintf(stderr, "Read accdump.bin contents and dump into shared memory at 50Hz\n");
-	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == binFile) {
-		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
-		return 1;
-	}
-
 	HANDLE phyMap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(struct ACCPhysics), TEXT("Local\\acpmf_physics"));
 	if (!phyMap) {
 		fprintf(stderr, "Error create file mapping for ACCPhysics.\n");
@@ -170,21 +164,27 @@ doReplay(void)
 		return 2;
 	}
 
-	struct ACCPhysics *phy = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_READ, 0, 0, 0);
+	struct ACCPhysics *phy = (struct ACCPhysics *) MapViewOfFile(phyMap, FILE_MAP_WRITE, 0, 0, 0);
 	if (!phy) {
 		fprintf(stderr, "Error mapping view ACCPhysics.\n");
 	}
-	struct ACCGraphics *gra = (struct ACCGraphics *) MapViewOfFile(graMap, FILE_MAP_READ, 0, 0, 0);
+	struct ACCGraphics *gra = (struct ACCGraphics *) MapViewOfFile(graMap, FILE_MAP_WRITE, 0, 0, 0);
 	if (!gra) {
 		fprintf(stderr, "Error mapping view ACCGraphics.\n");
 	}
-	struct ACCStatic *sta = (struct ACCStatic *) MapViewOfFile(staMap, FILE_MAP_READ, 0, 0, 0);
+	struct ACCStatic *sta = (struct ACCStatic *) MapViewOfFile(staMap, FILE_MAP_WRITE, 0, 0, 0);
 	if (!sta) {
 		fprintf(stderr, "Error mapping view ACCStatic.\n");
 	}
 
 	if (!phy || !gra || !sta) {
 		return 3;
+	}
+
+	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == binFile) {
+		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
+		return 1;
 	}
 
 	HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
@@ -198,8 +198,8 @@ doReplay(void)
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
 		return 5;
 	}
-	DWORD bytesRead;
 	while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
+		DWORD bytesRead;
 		if (!ReadFile(binFile, phy, sizeof(*phy), &bytesRead, NULL) || bytesRead < sizeof(*phy)) {
 			return 6;
 		}
