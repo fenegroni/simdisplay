@@ -34,7 +34,6 @@ typedef int AC_FLAG_TYPE;
 
 struct ACCPhysics
 {
-
     int packetId;
     float gas;
     float brake;
@@ -121,6 +120,9 @@ struct ACCPhysics
     float suspensionDamage[4];
     float tyreTemp[4];
 
+    /* Missing fields, I had to add, which need to be enabled after testing to capture the session again */
+    // float waterTemp;
+    // float brakePressure[4];
 };
 
 
@@ -182,6 +184,20 @@ struct ACCGraphics
     int DriverStintTotalTimeLeft;
     int DriverStintTimeLeft;
     int rainTyres;
+
+    /* Missing fields, I had to add, which need to be enabled after testing to capture the session again */
+    /*
+    int sessionIndex;
+    float usedFuel;
+    wchar_t deltaLapTime[15];
+    int iEstimatedLapTime;
+    int isDeltaPositive;
+    int iSplit;
+    int isValidLap;
+    float fuelEstimatedLaps;
+    wchar_t trackStatus[33];
+    int missingMandatoryPits;
+    */
 };
 
 
