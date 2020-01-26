@@ -35,7 +35,10 @@ void setup()
 
 void loop()
 {
-  if (Serial.available()) {
-    lcd.write(Serial.read());
+  char c;
+  while (Serial.available()) {
+    //itoa(Serial.read(), &c, 10);
+    //lcd.write(c);
+    lcd.write('0'+Serial.read());
   }
 }
