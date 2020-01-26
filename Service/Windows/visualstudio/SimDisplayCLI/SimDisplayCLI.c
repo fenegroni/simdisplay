@@ -4,6 +4,7 @@
 #include "..\ACCSharedMemory\ACCSharedMemory.h"
 
 #include <stdio.h>
+#include <math.h>
 
 typedef enum {
 	ERR_NONE,
@@ -55,10 +56,17 @@ Errorcode mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACC
 	return err;
 }
 
+#pragma pack (push)
+#pragma pack (1)
+struct SimDisplayPacket {
+	unsigned char status, tc, tcc, abs, bb, map, remlaps, airt, roadt;
+};
+#pragma pack (pop)
+
 Errorcode doSend(void)
 {
 	Errorcode err;
-	
+
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
@@ -73,7 +81,58 @@ Errorcode doSend(void)
 		return ERR_COM;
 	}
 
-	return 0;
+	DCB comPortDCB;
+
+	if (!GetCommState(comPort, &comPortDCB)) { //retreives  the current settings
+		fprintf(stderr, "Error: get COM state.");
+		return ERR_COM;
+	}
+
+	comPortDCB.BaudRate = CBR_9600;      //BaudRate = 9600
+	comPortDCB.ByteSize = 8;             //ByteSize = 8
+	comPortDCB.StopBits = ONESTOPBIT;    //StopBits = 1
+	comPortDCB.Parity = NOPARITY;      //Parity = None
+
+	if (!SetCommState(comPort, &comPortDCB)) {
+		fprintf(stderr, "Error: set COM state.");
+		return ERR_COM;
+	}
+
+	struct SimDisplayPacket packet;
+
+	HANDLE sendTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+	if (NULL == sendTimer) {
+		fprintf(stderr, "Error: create timer.\n");
+		return ERR_TIMER;
+	}
+	LARGE_INTEGER dueTime;
+	dueTime.QuadPart = -400000LL; // 40ms == 25Hz
+	if (!SetWaitableTimer(sendTimer, &dueTime, 40, NULL, NULL, FALSE)) {
+		printf("Error: SetWaitableTimer: %d\n", GetLastError());
+		return ERR_TIMER;
+	}
+	DWORD bytesWritten;
+	AC_STATUS prevStatus = AC_OFF;
+	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
+		if (AC_LIVE != gra->status && prevStatus == gra->status) continue;
+		if (prevStatus != gra->status) fprintf(stderr, "status changed: %d\n", gra->status); // TODO: remove, this is for debug only
+		packet.status = prevStatus = gra->status;
+		packet.tc = gra->TC;
+		packet.tcc = gra->TCCut;
+		packet.abs = gra->ABS;
+		packet.bb = 50;
+		packet.map = gra->EngineMap;
+		packet.remlaps = 255;// gra->fuelEstimatedLaps; // TODO: Add when redone capture
+		packet.airt = (char)lroundf(phy->airTemp);
+		packet.roadt = (char)lroundf(phy->roadTemp);
+
+		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
+		// TODO: validate bytes written
+		// TODO: will the serial port be open?
+		// TODO: what if I disconnect and reconnect the arduino?
+	}
+	fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
+	return ERR_TIMER;
 }
 
 Errorcode doDump(void)
@@ -133,7 +192,7 @@ Errorcode doCsv(void)
 	if (!csvRecord) ExitProcess(1);
 	DWORD writtenBytes;
 	if (!WriteFile(csvFile, csvRecord,
-			snprintf(csvRecord, maxCsvRecord, "Status,Damage 0,Damage 1,Damage 2,Damage 3,Damage 4,PHY Pid,TC Active,ABS Active,TC,TC Cut,ABS,Lights Stage,Flashing Lights\n"),
+			snprintf(csvRecord, maxCsvRecord, "Status,PHY pid,GRA pid,STA sessions\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
 		return ERR_FILE_WRITE;
@@ -147,8 +206,8 @@ Errorcode doCsv(void)
 	DWORD readBytes;
 	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
 		if (!WriteFile(csvFile, csvRecord,
-				snprintf(csvRecord, maxCsvRecord, "%d,%f,%f,%f,%f,%f,%f,%f,%d,%d,%d\n",
-					gra->status, phy->carDamage[0], phy->carDamage[1], phy->carDamage[2], phy->carDamage[3], phy->carDamage[4], phy->tc, phy->abs, gra->TC, gra->TCCut, gra->ABS),
+				snprintf(csvRecord, maxCsvRecord, "%d,%d,%d,%d\n",
+					gra->status, phy->packetId, gra->packetId, sta->numberOfSessions),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return ERR_FILE_WRITE;
