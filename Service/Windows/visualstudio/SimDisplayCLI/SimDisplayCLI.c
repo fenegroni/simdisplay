@@ -60,6 +60,7 @@ Errorcode mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACC
 #pragma pack (1)
 struct SimDisplayPacket {
 	unsigned char status, gear, tc, tcc, abs, bb, map, remlaps, airt, roadt;
+	short int rpms;
 };
 #pragma pack (pop)
 
@@ -118,6 +119,7 @@ Errorcode doSend(void)
 		if (prevStatus != gra->status) fprintf(stderr, "status changed: %d\n", gra->status); // TODO: remove, this is for debug only
 		packet.status = prevStatus = gra->status;
 		packet.gear = phy->gear;
+		packet.rpms = phy->rpms;
 		packet.tc = gra->TC;
 		packet.tcc = gra->TCCut;
 		packet.abs = gra->ABS;

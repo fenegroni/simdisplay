@@ -20,6 +20,8 @@
    wiper to LCD VO pin (pin 3)
 */
 
+#include <inttypes.h>
+
 #include <LiquidCrystal.h>
 
 // We use the display's 4 bit interface during development.
@@ -27,9 +29,11 @@
 // by switching to the 8 bit interface.
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // TODO: make it clearer how we are initialising the library.
 
+
 struct SimDisplayPacket {
   byte status, gear, tc, tcc, abs, bb, map, remlaps, airt, roadt;
-};
+  int16_t rpms;
+} __attribute__((packed));
 
 void setup()
 {
@@ -40,12 +44,20 @@ void setup()
 void loop()
 {
   char str[30];
-  struct SimDisplayPacket packet;
+  SimDisplayPacket packet;
   
-  while (Serial.available()) {
+  if (Serial.available()) {
+    unsigned long time = micros();
     Serial.readBytes((byte *)&packet, sizeof(packet));
     sprintf(str, "GEAR=%d TC=%d", packet.gear, packet.tc);
     lcd.setCursor(0, 0);
+    lcd.print(str);
+    lcd.setCursor(0, 1);
+    sprintf(str, "RPMS=%04" PRId16, packet.rpms);
+    lcd.print(str);
+    time = micros() - time;
+    lcd.setCursor(10, 1);
+    sprintf(str, "%lu", time);
     lcd.print(str);
   }
 }
