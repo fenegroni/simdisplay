@@ -29,32 +29,50 @@
 // by switching to the 8 bit interface.
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // TODO: make it clearer how we are initialising the library.
 
-
+/*
+ * The Uno R3 has a 64 byte buffer in the serial port.
+ * TODO: make the packets a divsor of 64 to ensure no packets are ever lost
+ */
 struct SimDisplayPacket {
   byte status, gear, tc, tcc, abs, bb, map, remlaps, airt, roadt;
   int16_t rpms;
-} __attribute__((packed));
+};
 
 void setup()
 {
   lcd.begin(16, 2);
   Serial.begin(9600);
+
+  
+  lcd.setCursor(0, 0);
+  lcd.print("GEAR=  TC=      ");
+  lcd.setCursor(0, 1);
+  lcd.print("RPMS=           ");
 }
 
 void loop()
 {
   char str[30];
   SimDisplayPacket packet;
-  
+
   if (Serial.available()) {
     unsigned long time = micros();
+    char gear;
     Serial.readBytes((byte *)&packet, sizeof(packet));
-    sprintf(str, "GEAR=%d TC=%d", packet.gear, packet.tc);
-    lcd.setCursor(0, 0);
-    lcd.print(str);
-    lcd.setCursor(0, 1);
-    sprintf(str, "RPMS=%04" PRId16, packet.rpms);
-    lcd.print(str);
+    if (packet.gear == 0) {
+      gear = 'R';
+    } else if (packet.gear == 1) {
+      gear = 'N';
+    } else {
+      gear = '0' + (packet.gear - 1);
+    }
+    lcd.setCursor(5, 0);
+    lcd.print(gear);
+    lcd.setCursor(10, 0);
+    lcd.print(packet.tc);
+    lcd.setCursor(5, 1);
+    sprintf(str, "%04" PRId16, packet.rpms);
+    lcd.print(packet.rpms);
     time = micros() - time;
     lcd.setCursor(10, 1);
     sprintf(str, "%lu", time);
