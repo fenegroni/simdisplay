@@ -14,6 +14,7 @@ typedef enum {
 	ERR_FILE, ERR_FILE_WRITE, ERR_FILE_READ
 } Errorcode;
 
+/* TODO: This method must be made more reusable so it can be used for reading and writing */
 Errorcode mapAcpmf(struct ACCPhysics **phy, struct ACCGraphics **gra, struct ACCStatic **sta)
 {
 	Errorcode err = ERR_NONE;
@@ -64,6 +65,7 @@ struct SimDisplayPacket {
 };
 #pragma pack (pop)
 
+/* TODO: pass name of comport or list comports and scan for Arduino. */
 Errorcode doSend(void)
 {
 	Errorcode err;
