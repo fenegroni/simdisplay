@@ -1,32 +1,26 @@
-typedef int AC_STATUS;
+#define ACC_OFF 0
+#define ACC_REPLAY 1
+#define ACC_LIVE 2
+#define ACC_PAUSE 3
 
-#define AC_OFF 0
-#define AC_REPLAY 1
-#define AC_LIVE 2
-#define AC_PAUSE 3
+#define ACC_UNKNOWN -1
+#define ACC_PRACTICE 0
+#define ACC_QUALIFY 1
+#define ACC_RACE 2
+#define ACC_HOTLAP 3
+#define ACC_TIME_ATTACK 4
+#define ACCDRIFT 5
+#define ACC_DRAG 6
+#define ACC_HOTSTINT 7
+#define ACC_HOTLAPSUPERPOLE 8
 
-typedef int AC_SESSION_TYPE;
-
-#define AC_UNKNOWN -1
-#define AC_PRACTICE 0
-#define AC_QUALIFY 1
-#define AC_RACE 2
-#define AC_HOTLAP 3
-#define AC_TIME_ATTACK 4
-#define AC_DRIFT 5
-#define AC_DRAG 6
-#define AC_HOTSTINT 7
-#define AC_HOTLAPSUPERPOLE 8
-
-typedef int AC_FLAG_TYPE;
-
-#define AC_NO_FLAG 0
-#define AC_BLUE_FLAG 1
-#define AC_YELLOW_FLAG 2
-#define AC_BLACK_FLAG 3
-#define AC_WHITE_FLAG 4
-#define AC_CHECKERED_FLAG 5
-#define AC_PENALTY_FLAG 6
+#define ACC_NO_FLAG 0
+#define ACC_BLUE_FLAG 1
+#define ACC_YELLOW_FLAG 2
+#define ACC_BLACK_FLAG 3
+#define ACC_WHITE_FLAG 4
+#define ACC_CHECKERED_FLAG 5
+#define ACC_PENALTY_FLAG 6
 
 
 #pragma pack(push)
@@ -110,12 +104,11 @@ struct ACCPhysics
 	float brakePressure[4];
 };
 
-
 struct ACCGraphics
 {
 	int packetId;
-	AC_STATUS status;
-	AC_SESSION_TYPE session;
+	int status;
+	int session;
 	wchar_t currentTime[15];
 	wchar_t lastTime[15];
 	wchar_t bestTime[15];
@@ -139,7 +132,7 @@ struct ACCGraphics
 	int carID[60];
 	int playerCarID;
 	float penaltyTime;
-	AC_FLAG_TYPE flag;
+	int flag;
 	int penalty;
 	int idealLineOn;
 	int isInPitLane;
@@ -222,6 +215,5 @@ struct ACCStatic
 	int PitWindowEnd;
 	int isOnline;
 };
-
 
 #pragma pack(pop)
