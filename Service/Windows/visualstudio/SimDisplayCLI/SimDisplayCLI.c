@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "..\ACCSharedMemory\ACCSharedMemory.h"
+#include "..\..\..\..\include\SimDisplayProtocol.h"
 
 enum mapAcpmf_action {
 	MAPACPMF_CREATE,
@@ -70,14 +71,6 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	return err;
 }
 
-//TODO: extract to shared header file so structs can be kept in sync!
-#pragma pack (push)
-#pragma pack (1)
-struct SimDisplayPacket {
-	uint8_t status, gear, tc, tcc, abs, bb, map, remlaps, airt, roadt;
-	uint16_t rpms;
-};
-#pragma pack (pop)
 
 /* TODO: pass name of comport or list comports and scan for Arduino. */
 int doSend(void)
@@ -130,17 +123,22 @@ int doSend(void)
 	int prevStatus = ACC_OFF;
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
-		packet.status = prevStatus = gra->status;
+		prevStatus = gra->status;
+		packet.status = prevStatus ? SDP_STATUS_LIVE : SDP_STATUS_OFF;
+		packet.rpm = phy->rpms;
+		packet.maxRpm = sta->maxRpm;
+		packet.pitLimiterOn = phy->pitLimiterOn;
 		packet.gear = phy->gear;
-		packet.rpms = phy->rpms;
 		packet.tc = gra->TC;
 		packet.tcc = gra->TCCut;
+		packet.tcInAction = (uint8_t)(phy->tc);
 		packet.abs = gra->ABS;
-		packet.bb = 50;
-		packet.map = gra->EngineMap;
-		packet.remlaps = 255;// gra->fuelEstimatedLaps; // TODO: Add when redone capture
-		packet.airt = (uint8_t)lroundf(phy->airTemp);
-		packet.roadt = (uint8_t)lroundf(phy->roadTemp);
+		packet.absInAction = (uint8_t)(phy->abs);
+		packet.bb = 50; // TODO: offset by car model table lookup.
+		packet.fuelEstimatedLaps = (uint8_t)lroundf(gra->fuelEstimatedLaps);
+		packet.engineMap = gra->EngineMap;
+		packet.airTemp = (uint8_t)lroundf(phy->airTemp);
+		packet.roadTemp = (uint8_t)lroundf(phy->roadTemp);
 
 		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
 		// TODO: validate bytes written
@@ -206,7 +204,7 @@ int doCsv(void)
 	if (!csvRecord) ExitProcess(1);
 	DWORD writtenBytes;
 	if (!WriteFile(csvFile, csvRecord,
-			snprintf(csvRecord, maxCsvRecord, "Status,PHY pid,GRA pid,STA sessions\n"),
+			snprintf(csvRecord, maxCsvRecord, "status,rpm,maxrpm,pitlimiteron,gear,tc,tccut,tcaction,abs,absaction,bb,fuellaps,map,aurt,roadt\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
 		return 1;
@@ -220,8 +218,10 @@ int doCsv(void)
 	DWORD readBytes;
 	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
 		if (!WriteFile(csvFile, csvRecord,
-				snprintf(csvRecord, maxCsvRecord, "%d,%d,%d,%d\n",
-					gra->status, phy->packetId, gra->packetId, sta->numberOfSessions),
+				snprintf(csvRecord, maxCsvRecord, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%d,%d,%d\n",
+					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear, gra->TC, gra->TCCut, (uint8_t)(phy->tc),
+					gra->ABS, (uint8_t)(phy->abs), 50, gra->fuelEstimatedLaps, gra->EngineMap,
+					(uint8_t)lroundf(phy->airTemp), (uint8_t)lroundf(phy->roadTemp)),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
