@@ -20,10 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ACCSharedMemory\ACCSharedMemory.h">
+    <ClInclude Include="..\include\ACCSharedMemory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\SimDisplayProtocol.h">
+    <ClInclude Include="..\include\SimDisplayProtocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

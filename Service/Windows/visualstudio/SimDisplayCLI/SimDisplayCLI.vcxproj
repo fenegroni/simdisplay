@@ -151,8 +151,8 @@
     <ClCompile Include="SimDisplayCLI.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\include\SimDisplayProtocol.h" />
-    <ClInclude Include="..\ACCSharedMemory\ACCSharedMemory.h" />
+    <ClInclude Include="..\include\ACCSharedMemory.h" />
+    <ClInclude Include="..\include\SimDisplayProtocol.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

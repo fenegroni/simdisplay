@@ -5,8 +5,8 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "..\ACCSharedMemory\ACCSharedMemory.h"
-#include "..\..\..\..\include\SimDisplayProtocol.h"
+#include "..\include\ACCSharedMemory.h"
+#include "..\include\SimDisplayProtocol.h"
 
 enum mapAcpmf_action {
 	MAPACPMF_CREATE,

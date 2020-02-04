@@ -159,6 +159,8 @@ struct ACCGraphics
 	int sessionIndex;
 	float usedFuel;
 	wchar_t deltaLapTime[15];
+	int iDeltaLapTime;
+	wchar_t estimatedLapTime[15];
 	int iEstimatedLapTime;
 	int isDeltaPositive;
 	int iSplit;
