@@ -123,8 +123,7 @@ int doSend(void)
 	int prevStatus = ACC_OFF;
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
-		prevStatus = gra->status;
-		packet.status = prevStatus ? SDP_STATUS_LIVE : SDP_STATUS_OFF;
+		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
 		packet.maxRpm = sta->maxRpm;
 		packet.pitLimiterOn = phy->pitLimiterOn;
@@ -136,7 +135,7 @@ int doSend(void)
 		packet.absInAction = (uint8_t)(phy->abs);
 		packet.bb = 50; // TODO: offset by car model table lookup.
 		packet.fuelEstimatedLaps = (uint8_t)lroundf(gra->fuelEstimatedLaps);
-		packet.engineMap = gra->EngineMap;
+		packet.engineMap = gra->EngineMap + 1;
 		packet.airTemp = (uint8_t)lroundf(phy->airTemp);
 		packet.roadTemp = (uint8_t)lroundf(phy->roadTemp);
 
