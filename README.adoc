@@ -1,3 +1,17 @@
 = simdisplay
 
 A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
+
+== Synposis
+
+This project contains everything you need to build a real simracing dashboard that shows information from the game ACC in real time.
+
+A Windows console process reads data from the game's shared memory and streams it to an Arduino-compatible board via the onboard USB-to-Serial connection; The board is connected to an number of LED's and a 16x2 character display and shows the relevant data, such as ABS and TC level, gear, redline RPM, etc.
+
+The complete list of fields is documented in the relevant section of this document. 
+
+== Hardware and Software
+
+What makes this project interesting is that it is inexpensive and can be assembled with very limited electronics and programming skills.
+
+The whole process will be documented with wiring and assembly diagrams as well as explanation of what the code does and the protocol used.
