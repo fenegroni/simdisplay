@@ -2,6 +2,15 @@
 
 A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
 
+Copyright (C) 2020  Filippo Erik Negroni
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+For a copy of the GNU General Public License see <https://www.gnu.org/licenses/>.
+
 == Synposis
 
 This project contains everything you need to build a real simracing dashboard that shows information from the game ACC in real time.
