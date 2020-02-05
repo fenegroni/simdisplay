@@ -22,50 +22,83 @@
 
 #include <inttypes.h>
 
+#include <LiquidCrystal.h>
+
 #include "SimDisplayProtocol.h"
 
-#include <LiquidCrystal.h>
+// ----------------------  0123456789012345
+#define DISPLAY_MASK_ROW0 "-   R:--    -/- "
+#define DISPLAY_MASK_ROW1 "--%   M-  --/--C"
+#define DISPLAY_ABS_COLROW      0, 0
+#define DISPLAY_REMLAPS_COLROW  6, 0
+#define DISPLAY_TC_COLROW       11, 0
+#define DISPLAY_TCC_COLROW      14, 0
+#define DISPLAY_BB_COLROW       0, 1
+#define DISPLAY_ENGMAP_COLROW   7, 1
+#define DISPLAY_AIRTEMP_COLROW  10, 1
+#define DISPLAY_ROADTEMP_COLROW 13, 1
 
 // We use the display's 4 bit interface during development.
 // If we have more pins available we can make it faster
 // by switching to the 8 bit interface.
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // TODO: make it clearer how we are initialising the library.
 
-/*
- * The Uno R3 has a 64 byte buffer in the serial port.
- * TODO: make the packets a divisor of 64 to ensure no packets are ever lost if that can help
- */
+static struct SimDisplayPacket packet[2];
+static struct SimDisplayPacket *newPacket = &packet[0];
+static struct SimDisplayPacket *oldPacket = &packet[1];
 
-struct SimDisplayPacket packet[2];
-struct SimDisplayPacket *newPacket, *oldPacket;
-int isOldPacketUsed;
-
-char strbuffer[17];
-
-void resetDisplayMask()
+void lcdPrint(char *str, int col, int row)
 {
-  lcd.setCursor(0, 0);
-  //         0123456789012345
-  lcd.print("-    R--    -/--");
-  lcd.setCursor(0, 1);
-  //         0123456789012345
-  lcd.print("--%   M-  --/--C");
+  lcd.setCursor(col, row);
+  lcd.print(str);
+}
+
+void printDisplayMask()
+{
+  lcdPrint(DISPLAY_MASK_ROW0, 0, 0);
+  lcdPrint(DISPLAY_MASK_ROW1, 0, 1);
 }
 
 void setup()
 {
-  newPacket = &packet[0];
-  oldPacket = &packet[1];
-  
   lcd.begin(16, 2);
-  resetDisplayMask();
+  printDisplayMask();
   Serial.begin(9600);
+}
+
+void printDisplayField(int newval, int oldval, char *zerostr, char *fmtstr, int col, int row)
+{
+  static char strbuffer[17];
+  
+  if (newval != oldval) {
+    if (0 == newval) {
+      strcpy(strbuffer, zerostr);
+    } else {
+      sprintf(strbuffer, fmtstr, newval);
+    }
+    lcdPrint(strbuffer, col, row);
+  }
+}
+
+void printDisplayFields()
+{
+  static char strbuffer[17];
+  
+  printDisplayField(newPacket->abs, oldPacket->abs, "-", "%-2d", DISPLAY_ABS_COLROW);
+  printDisplayField(newPacket->fuelEstimatedLaps, oldPacket->fuelEstimatedLaps, "--", "%2d", DISPLAY_REMLAPS_COLROW); 
+  printDisplayField(newPacket->tc, oldPacket->tc, " -", "%2d", DISPLAY_TC_COLROW);
+  printDisplayField(newPacket->tcc, oldPacket->tcc, "- ", "%-2d", DISPLAY_TCC_COLROW);
+  printDisplayField(newPacket->bb, oldPacket->bb, "--", "%2d", DISPLAY_BB_COLROW);
+  printDisplayField(newPacket->engineMap, oldPacket->engineMap, "-", "%d", DISPLAY_ENGMAP_COLROW);
+  printDisplayField(newPacket->airTemp, oldPacket->airTemp, "--", "%2d", DISPLAY_AIRTEMP_COLROW);
+  printDisplayField(newPacket->roadTemp, oldPacket->roadTemp, "--", "%2d", DISPLAY_ROADTEMP_COLROW);
 }
 
 void loop()
 {
   while (Serial.available() >= sizeof(struct SimDisplayPacket)) {
     unsigned long time = micros();
+    
     if (sizeof(struct SimDisplayPacket) > Serial.readBytes((byte *)newPacket, sizeof(struct SimDisplayPacket))) {
       // something went wrong, we reset ourselves.
       Serial.end();
@@ -74,52 +107,16 @@ void loop()
       break;
     }
     if (SDP_STATUS_LIVE != newPacket->status) {
-      resetDisplayMask();
+      printDisplayMask();
       continue;
     }
-    if (newPacket->abs != oldPacket->abs) {
-      lcd.setCursor(0, 0);
-      sprintf(strbuffer, "%" PRIu8, newPacket->abs);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->fuelEstimatedLaps != oldPacket->fuelEstimatedLaps) {
-      lcd.setCursor(6, 0);
-      sprintf(strbuffer, "%2" PRIu8, newPacket->fuelEstimatedLaps);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->tc != oldPacket->tc) {
-      lcd.setCursor(11, 0);
-      sprintf(strbuffer, "%2" PRIu8, newPacket->tc);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->tcc != oldPacket->tcc) {
-      lcd.setCursor(14, 0);
-      sprintf(strbuffer, "%2" PRIu8, newPacket->tcc);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->bb != oldPacket->bb) {
-      lcd.setCursor(0, 1);
-      sprintf(strbuffer, "%2" PRIu8, newPacket->bb);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->engineMap != oldPacket->engineMap) {
-      lcd.setCursor(7, 1);
-      sprintf(strbuffer, "%1" PRIu8, newPacket->engineMap);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->airTemp != oldPacket->airTemp) {
-      lcd.setCursor(10, 1);
-      sprintf(strbuffer, "%2" PRIu8, newPacket->airTemp);
-      lcd.print(strbuffer);
-    }
-    if (newPacket->roadTemp != oldPacket->roadTemp) {
-      lcd.setCursor(13, 1);
-      sprintf(strbuffer, "%2" PRIu8, newPacket->roadTemp);
-      lcd.print(strbuffer);
-    }
+    printDisplayFields();
     struct SimDisplayPacket *tmp = oldPacket;
     oldPacket = newPacket;
     newPacket = tmp;
+    
     time = micros() - time;
+
+    // TODO: if time is ever longer than 20ms, light up LED
   }
 }
