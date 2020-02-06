@@ -152,10 +152,10 @@ int doSend(void)
 		return 1;
 	}
 
-	comPortDCB.BaudRate = CBR_9600;      //BaudRate = 9600
-	comPortDCB.ByteSize = 8;             //ByteSize = 8
-	comPortDCB.StopBits = ONESTOPBIT;    //StopBits = 1
-	comPortDCB.Parity = NOPARITY;      //Parity = None
+	comPortDCB.BaudRate = CBR_9600;
+	comPortDCB.ByteSize = 8;
+	comPortDCB.StopBits = ONESTOPBIT;
+	comPortDCB.Parity = NOPARITY;
 
 	if (!SetCommState(comPort, &comPortDCB)) {
 		fprintf(stderr, "Error: set COM state.");
@@ -186,21 +186,22 @@ int doSend(void)
 		packet.rpm = phy->rpms;
 		packet.maxRpm = sta->maxRpm;
 		packet.pitLimiterOn = phy->pitLimiterOn;
-		packet.gear = phy->gear;
+		packet.gear = phy->gear; // 0 = Reverse, 1 = Neutra, 2 = 1st, 3 = 2nd, ..., 7 = 6th.
 		packet.tc = gra->TC;
 		packet.tcc = gra->TCCut;
-		packet.tcInAction = (uint8_t)(phy->tc);
+		packet.tcInAction = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
 		packet.absInAction = (uint8_t)phy->abs;
 		packet.bb = (uint8_t)(phy->brakeBias * 1000.0 - bbOffset);
 		packet.fuelEstimatedLaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.engineMap = gra->EngineMap + 1;
-		packet.airTemp = (uint8_t)lroundf(phy->airTemp);
-		packet.roadTemp = (uint8_t)lroundf(phy->roadTemp);
+		packet.airTemp = (uint8_t)lroundf(phy->airTemp); // TODO: I don't think we need rounding from the data I see
+		packet.roadTemp = (uint8_t)lroundf(phy->roadTemp); // TODO: I don't think we need rounding from the data I see
 
 		DWORD bytesWritten;
 		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
-		// TODO: validate bytes written
+		// FIXME: validate bytes written and return status.
+		// TODO: if error, stop writing completely or pause?
 		// TODO: will the serial port be open?
 		// TODO: what if I disconnect and reconnect the arduino?
 	}
