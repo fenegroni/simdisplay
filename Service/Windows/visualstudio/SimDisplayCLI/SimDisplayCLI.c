@@ -90,12 +90,45 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	return err;
 }
 
-int offsetBB(wchar_t *carModel, float bb)
+float lookupBBOffset(wchar_t *carModel)
 {
-	return 50;
+	static struct BBOffsetDictElem {
+		float bbOffset;
+		wchar_t* carModel;
+	} bbOffsetDict[] = {
+		{ 70.0,		L"amr_v12_vantage_gt3" },
+		{ 140.0,	L"audi_r8_lms" },
+		{ 70.0,		L"bentley_continental_gt3_2016" },
+		{ 70.0,		L"bentley_continental_gt3_2018" },
+		{ 150.0,	L"bmw_m6_gt3" },
+		{ 70.0,		L"jaguar_g3" },
+		{ 170.0,	L"ferrari_488_gt3" },
+		{ 140.0,	L"honda_nsx_gt3" },
+		{ 140.0,	L"lamborghini_gallardo_rex" },
+		{ 150.0,	L"lamborghini_huracan_gt3" },
+		{ 140.0,	L"lamborghini_huracan_st" },
+		{ 140.0,	L"lexus_rc_f_gt3" },
+		{ 170.0,	L"mclaren_650s_gt3" },
+		{ 150.0,	L"mercedes_amg_gt3" },
+		{ 150.0,	L"nissan_gt_r_gt3_2017" },
+		{ 150.0,	L"nissan_gt_r_gt3_2018" },
+		{ 60.0,		L"porsche_991_gt3_r" },
+		{ 150.0,	L"porsche_991ii_gt3_cup" },
+		{ 70.0,		L"amr_v8_vantage_gt3" },
+		{ 140.0,	L"audi_r8_lms_evo" },
+		{ 140.0,	L"honda_nsx_gt3_evo" },
+		{ 140.0,	L"lamborghini_huracan_gt3_evo" },
+		{ 170.0,	L"mclaren_720s_gt3" },
+		{ 210.0,	L"porsche_991ii_gt3_r" }
+	};
+	for (int i = 0; i < (sizeof(bbOffsetDict) / sizeof (struct BBOffsetDictElem)); ++i) {
+		if (!wcscmp(bbOffsetDict[i].carModel, carModel)) {
+			return bbOffsetDict[i].bbOffset;
+		}
+	}
+	return 0.0;
 }
 
-/* TODO: pass name of comport or list comports and scan for Arduino. */
 int doSend(void)
 {
 	struct ACCPhysics *phy;
@@ -129,8 +162,6 @@ int doSend(void)
 		return 1;
 	}
 
-	struct SimDisplayPacket packet;
-
 	HANDLE sendTimer = CreateWaitableTimer(NULL, FALSE, NULL);
 	if (NULL == sendTimer) {
 		fprintf(stderr, "Error: create timer.\n");
@@ -142,10 +173,15 @@ int doSend(void)
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
 		return 1;
 	}
-	DWORD bytesWritten;
-	int prevStatus = ACC_OFF;
+
+	struct SimDisplayPacket packet;
+	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
+		float bbOffset = 0.0;
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
+		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
+			bbOffset = lookupBBOffset(sta->carModel);
+		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
 		packet.maxRpm = sta->maxRpm;
@@ -155,13 +191,14 @@ int doSend(void)
 		packet.tcc = gra->TCCut;
 		packet.tcInAction = (uint8_t)(phy->tc);
 		packet.abs = gra->ABS;
-		packet.absInAction = (uint8_t)(phy->abs);
-		packet.bb = (uint8_t)offsetBB(sta->carModel, phy->brakeBias); // TODO: offset by car model table lookup.
-		packet.fuelEstimatedLaps = (uint8_t)lroundf(gra->fuelEstimatedLaps);
+		packet.absInAction = (uint8_t)phy->abs;
+		packet.bb = (uint8_t)(phy->brakeBias * 1000.0 - bbOffset);
+		packet.fuelEstimatedLaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.engineMap = gra->EngineMap + 1;
 		packet.airTemp = (uint8_t)lroundf(phy->airTemp);
 		packet.roadTemp = (uint8_t)lroundf(phy->roadTemp);
 
+		DWORD bytesWritten;
 		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
 		// TODO: validate bytes written
 		// TODO: will the serial port be open?
