@@ -78,6 +78,7 @@ void printDisplayMask()
 
 void setup()
 {
+  pinMode(LED_BUILTIN, OUTPUT);
   lcd.begin(16, 2);
   printDisplayMask();
   Serial.begin(9600);
@@ -120,7 +121,8 @@ void loop()
       // something went wrong, we reset ourselves.
       Serial.end();
       delay(2000);
-      setup();
+      printDisplayMask();
+      Serial.begin(9600);
       break;
     }
     if (SDP_STATUS_LIVE != newPacket->status) {
@@ -134,6 +136,10 @@ void loop()
     
     time = micros() - time;
 
-    // TODO: if time is ever longer than 20ms, light up LED
+    if (time > 20000) {
+      digitalWrite(LED_BUILTIN, HIGH);
+    } else {
+      digitalWrite(LED_BUILTIN, LOW);
+    }
   }
 }
