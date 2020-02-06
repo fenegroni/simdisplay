@@ -90,6 +90,10 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	return err;
 }
 
+int offsetBB(wchar_t *carModel, float bb)
+{
+	return 50;
+}
 
 /* TODO: pass name of comport or list comports and scan for Arduino. */
 int doSend(void)
@@ -152,7 +156,7 @@ int doSend(void)
 		packet.tcInAction = (uint8_t)(phy->tc);
 		packet.abs = gra->ABS;
 		packet.absInAction = (uint8_t)(phy->abs);
-		packet.bb = 50; // TODO: offset by car model table lookup.
+		packet.bb = (uint8_t)offsetBB(sta->carModel, phy->brakeBias); // TODO: offset by car model table lookup.
 		packet.fuelEstimatedLaps = (uint8_t)lroundf(gra->fuelEstimatedLaps);
 		packet.engineMap = gra->EngineMap + 1;
 		packet.airTemp = (uint8_t)lroundf(phy->airTemp);
@@ -236,9 +240,9 @@ int doCsv(void)
 	DWORD readBytes;
 	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
 		if (!WriteFile(csvFile, csvRecord,
-				snprintf(csvRecord, maxCsvRecord, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%d,%d,%d\n",
+				snprintf(csvRecord, maxCsvRecord, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%d,%d,%d\n",
 					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear, gra->TC, gra->TCCut, (uint8_t)(phy->tc),
-					gra->ABS, (uint8_t)(phy->abs), 50, gra->fuelEstimatedLaps, gra->EngineMap,
+					gra->ABS, (uint8_t)(phy->abs), phy->brakeBias, gra->fuelEstimatedLaps, gra->EngineMap,
 					(uint8_t)lroundf(phy->airTemp), (uint8_t)lroundf(phy->roadTemp)),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
