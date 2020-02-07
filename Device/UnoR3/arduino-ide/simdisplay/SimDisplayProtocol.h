@@ -1,5 +1,6 @@
 /*
-simdisplay - A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
+simdisplay - A simracing dashboard created using Arduino to show shared memory
+             telemetry from Assetto Corsa Competizione.
 
 Copyright (C) 2020  Filippo Erik Negroni
 
@@ -22,19 +23,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 struct SimDisplayPacket {
 	uint8_t status;
 	uint16_t rpm;
-	uint16_t maxRpm;
-	uint8_t pitLimiterOn;
+	uint16_t maxrpm;
+	uint8_t pitlimiter;
 	uint8_t gear;
 	uint8_t tc;
 	uint8_t tcc;
-	uint8_t tcInAction;
+	uint8_t tcaction;
 	uint8_t abs;
-	uint8_t absInAction;
-	uint8_t bb;
-	uint8_t fuelEstimatedLaps;
-	uint8_t engineMap;
-	uint8_t airTemp;
-	uint8_t roadTemp;
+	uint8_t absaction;
+	uint16_t bb;
+	uint8_t remlaps;
+	uint8_t map;
+	uint8_t airt;
+	uint8_t roadt;
 };
 
 #define SDP_STATUS_OFF 0

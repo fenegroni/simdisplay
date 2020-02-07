@@ -1,5 +1,6 @@
 /*
-simdisplay - A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
+simdisplay - A simracing dashboard created using Arduino to show shared memory
+             telemetry from Assetto Corsa Competizione.
 
 Copyright (C) 2020  Filippo Erik Negroni
 
@@ -90,8 +91,45 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	return err;
 }
 
+float lookupBBOffset(wchar_t *carModel)
+{
+	static struct DictElem {
+		float bbOffset;
+		wchar_t* carModel;
+	} dict[] = {
+		{ -70.0,	L"amr_v12_vantage_gt3" },
+		{ -70.0,	L"amr_v8_vantage_gt3" },
+		{ -140.0,	L"audi_r8_lms" },
+		{ -140.0,	L"audi_r8_lms_evo" },
+		{ -70.0,	L"bentley_continental_gt3_2016" },
+		{ -70.0,	L"bentley_continental_gt3_2018" },
+		{ -150.0,	L"bmw_m6_gt3" },
+		{ -70.0,	L"jaguar_g3" },
+		{ -170.0,	L"ferrari_488_gt3" },
+		{ -140.0,	L"honda_nsx_gt3" },
+		{ -140.0,	L"honda_nsx_gt3_evo" },
+		{ -140.0,	L"lamborghini_gallardo_rex" },
+		{ -150.0,	L"lamborghini_huracan_gt3" },
+		{ -140.0,	L"lamborghini_huracan_gt3_evo" },
+		{ -140.0,	L"lamborghini_huracan_st" },
+		{ -140.0,	L"lexus_rc_f_gt3" },
+		{ -170.0,	L"mclaren_650s_gt3" },
+		{ -170.0,	L"mclaren_720s_gt3" },
+		{ -150.0,	L"mercedes_amg_gt3" },
+		{ -150.0,	L"nissan_gt_r_gt3_2017" },
+		{ -150.0,	L"nissan_gt_r_gt3_2018" },
+		{ -60.0,	L"porsche_991_gt3_r" },
+		{ -150.0,	L"porsche_991ii_gt3_cup" },
+		{ -210.0,	L"porsche_991ii_gt3_r" },		
+	};
+	for (int i = 0; i < (sizeof(dict) / sizeof (struct DictElem)); ++i) {
+		if (!wcscmp(dict[i].carModel, carModel)) {
+			return dict[i].bbOffset;
+		}
+	}
+	return 0.0;
+}
 
-/* TODO: pass name of comport or list comports and scan for Arduino. */
 int doSend(void)
 {
 	struct ACCPhysics *phy;
@@ -115,17 +153,15 @@ int doSend(void)
 		return 1;
 	}
 
-	comPortDCB.BaudRate = CBR_9600;      //BaudRate = 9600
-	comPortDCB.ByteSize = 8;             //ByteSize = 8
-	comPortDCB.StopBits = ONESTOPBIT;    //StopBits = 1
-	comPortDCB.Parity = NOPARITY;      //Parity = None
+	comPortDCB.BaudRate = CBR_9600;
+	comPortDCB.ByteSize = 8;
+	comPortDCB.StopBits = ONESTOPBIT;
+	comPortDCB.Parity = NOPARITY;
 
 	if (!SetCommState(comPort, &comPortDCB)) {
 		fprintf(stderr, "Error: set COM state.");
 		return 1;
 	}
-
-	struct SimDisplayPacket packet;
 
 	HANDLE sendTimer = CreateWaitableTimer(NULL, FALSE, NULL);
 	if (NULL == sendTimer) {
@@ -138,28 +174,35 @@ int doSend(void)
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
 		return 1;
 	}
-	DWORD bytesWritten;
-	int prevStatus = ACC_OFF;
+
+	struct SimDisplayPacket packet;
+	float bbOffset = 0.0;
+	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
+		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
+			bbOffset = lookupBBOffset(sta->carModel);
+		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
-		packet.maxRpm = sta->maxRpm;
-		packet.pitLimiterOn = phy->pitLimiterOn;
-		packet.gear = phy->gear;
+		packet.maxrpm = sta->maxRpm;
+		packet.pitlimiter = phy->pitLimiterOn;
+		packet.gear = phy->gear; // 0 = Reverse, 1 = Neutra, 2 = 1st, 3 = 2nd, ..., 7 = 6th.
 		packet.tc = gra->TC;
 		packet.tcc = gra->TCCut;
-		packet.tcInAction = (uint8_t)(phy->tc);
+		packet.tcaction = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
-		packet.absInAction = (uint8_t)(phy->abs);
-		packet.bb = 50; // TODO: offset by car model table lookup.
-		packet.fuelEstimatedLaps = (uint8_t)lroundf(gra->fuelEstimatedLaps);
-		packet.engineMap = gra->EngineMap + 1;
-		packet.airTemp = (uint8_t)lroundf(phy->airTemp);
-		packet.roadTemp = (uint8_t)lroundf(phy->roadTemp);
+		packet.absaction = (uint8_t)phy->abs;
+		packet.bb = (uint16_t)(phy->brakeBias ? (phy->brakeBias * 1000.0 + bbOffset) : 0);
+		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
+		packet.map = gra->EngineMap + 1;
+		packet.airt = (uint8_t)(phy->airTemp+0.5); // would be nice to track temps going down/up
+		packet.roadt = (uint8_t)(phy->roadTemp+0.5);
 
+		DWORD bytesWritten;
 		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
-		// TODO: validate bytes written
+		// FIXME: validate bytes written and return status.
+		// TODO: if error, stop writing completely or pause?
 		// TODO: will the serial port be open?
 		// TODO: what if I disconnect and reconnect the arduino?
 	}
@@ -222,7 +265,10 @@ int doCsv(void)
 	if (!csvRecord) ExitProcess(1);
 	DWORD writtenBytes;
 	if (!WriteFile(csvFile, csvRecord,
-			snprintf(csvRecord, maxCsvRecord, "status,rpm,maxrpm,pitlimiteron,gear,tc,tccut,tcaction,abs,absaction,bb,fuellaps,map,aurt,roadt\n"),
+			snprintf(csvRecord, maxCsvRecord,
+					"status,rpm,maxrpm,pitlimiteron,gear,"
+					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
+					"bb,ibb,fuellaps,map,airt,roadt\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
 		return 1;
@@ -236,10 +282,13 @@ int doCsv(void)
 	DWORD readBytes;
 	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
 		if (!WriteFile(csvFile, csvRecord,
-				snprintf(csvRecord, maxCsvRecord, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%d,%d,%d\n",
-					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear, gra->TC, gra->TCCut, (uint8_t)(phy->tc),
-					gra->ABS, (uint8_t)(phy->abs), 50, gra->fuelEstimatedLaps, gra->EngineMap,
-					(uint8_t)lroundf(phy->airTemp), (uint8_t)lroundf(phy->roadTemp)),
+				snprintf(csvRecord, maxCsvRecord,
+					"%d,%d,%d,%d,%d,"
+					"%d,%d,%f,%u,%d,%f,%u,"
+					"%f,%u,%f,%d,%f,%f\n",
+					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
+					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
+					phy->brakeBias, (uint16_t)(phy->brakeBias * 1000.0 + lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
