@@ -31,7 +31,7 @@ struct SimDisplayPacket {
 	uint8_t tcaction;
 	uint8_t abs;
 	uint8_t absaction;
-	uint8_t bb;
+	uint16_t bb;
 	uint8_t remlaps;
 	uint8_t map;
 	uint8_t airt;
