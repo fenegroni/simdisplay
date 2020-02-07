@@ -176,9 +176,9 @@ int doSend(void)
 	}
 
 	struct SimDisplayPacket packet;
+	float bbOffset = 0.0;
 	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
-		float bbOffset = 0.0;
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
 		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
 			bbOffset = lookupBBOffset(sta->carModel);
@@ -193,7 +193,7 @@ int doSend(void)
 		packet.tcaction = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
 		packet.absaction = (uint8_t)phy->abs;
-		packet.bb = (uint16_t)(phy->brakeBias * 1000.0 + bbOffset);
+		packet.bb = (uint16_t)(phy->brakeBias ? (phy->brakeBias * 1000.0 + bbOffset) : 0);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
 		packet.airt = (uint8_t)(phy->airTemp+0.5); // would be nice to track temps going down/up
