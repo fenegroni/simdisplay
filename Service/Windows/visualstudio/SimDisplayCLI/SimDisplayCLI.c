@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <windows.h>
-#include <tchar.h>
+#include <string.h>
 
 #include <stdio.h>
 #include <math.h>
@@ -130,8 +130,16 @@ float lookupBBOffset(wchar_t *carModel)
 	return 0.0;
 }
 
-int doSend(void)
+int doSend(int argc, const wchar_t *argv[])
 {
+	if (!argv[0]) {
+		fprintf(stderr, "usage: send <serial_port>\n\n");
+		fprintf(stderr, "<serial_port> is the name of the serial port the device is attached to.\n");
+		return 1;
+	}
+
+	const wchar_t *comPortName = argv[0];
+
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
@@ -140,9 +148,9 @@ int doSend(void)
 		return 1;
 	}
 
-	HANDLE comPort = CreateFile(L"\\.\\COM3", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE comPort = CreateFile(comPortName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (comPort == INVALID_HANDLE_VALUE) {
-		fprintf(stderr, "Error: open serial port \\.\\COM3\n");
+		fprintf(stderr, "Error: open serial port %S\n", comPortName);
 		return 1;
 	}
 
@@ -210,7 +218,7 @@ int doSend(void)
 	return 1;
 }
 
-int doDump(void)
+int doSave(void)
 {
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
@@ -220,7 +228,6 @@ int doDump(void)
 		return 1;
 	}
 
-	fprintf(stderr, "Read memory at 50Hz and dump contents to accdump.bin\n");
 	HANDLE dumpFile = CreateFile(TEXT("accdump.bin"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE == dumpFile) {
 		fprintf(stderr, "Error: create accdump.bin\n");
@@ -313,18 +320,18 @@ int doReplay(void)
 		return 1;
 	}
 
-	HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
-	if (NULL == dumpTimer) {
+	HANDLE replayTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+	if (NULL == replayTimer) {
 		fprintf(stderr, "Error: create timer.\n");
 		return 1;
 	}
 	LARGE_INTEGER dueTime;
 	dueTime.QuadPart = -200000LL; // 20ms == 50Hz
-	if (!SetWaitableTimer(dumpTimer, &dueTime, 20, NULL, NULL, FALSE)) {
+	if (!SetWaitableTimer(replayTimer, &dueTime, 20, NULL, NULL, FALSE)) {
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
 		return 1;
 	}
-	while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
+	while (WaitForSingleObject(replayTimer, INFINITE) == WAIT_OBJECT_0) {
 		DWORD bytesRead;
 		if (!ReadFile(binFile, phy, sizeof(*phy), &bytesRead, NULL) || bytesRead < sizeof(*phy)) {
 			return 1;
@@ -340,25 +347,45 @@ int doReplay(void)
 	return 1;
 }
 
-int main(int argc, char *argv[])
+int doHelp(void)
 {
-	enum { SEND, DUMP, CSV, REPLAY } action = SEND;
-	
+	puts(
+"usage: <command> [<args>]\n"
+"\n"
+"Commands are:\n"
+"  send   transmit data to device over serial connection\n"
+"  save   saves a gaming session to file\n"
+"  csv    convert data from a saved session into a CSV format file\n"
+"  replay reads a saved session and populates shared memory\n"
+);
+	return 1;
+}
+
+int wmain(int argc, const wchar_t *argv[])
+{
+	enum { SEND, SAVE, CSV, REPLAY, HELP } action = HELP;
+
 	if (argc > 1) {
-		if (!strcmp(argv[1], "dump")) {
-			action = DUMP;
-		} else if (!strcmp(argv[1], "csv")) {
+		if (!wcscmp(argv[1], L"send")) {
+			action = SEND;
+		} else if (!wcscmp(argv[1], L"save")) {
+			action = SAVE;
+		} else if (!wcscmp(argv[1], L"csv")) {
 			action = CSV;
-		} else if (!strcmp(argv[1], "replay")) {
+		} else if (!wcscmp(argv[1], L"replay")) {
 			action = REPLAY;
+		} else {
+			action = HELP;
 		}
 	}
 
 	switch (action) {
+	case HELP:
+		return doHelp();
 	case SEND:
-		return doSend();
-	case DUMP:
-		return doDump();
+		return doSend(argc-2, argv+2);
+	case SAVE:
+		return doSave();
 	case CSV:
 		return doCsv();
 	case REPLAY:
