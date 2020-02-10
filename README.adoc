@@ -1,6 +1,7 @@
-= simdisplay
+= Simdisplay
 
-A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
+A simracing dashboard created using Arduino to show telemetry
+from the racing simulator Assetto Corsa Competizione in real time.
 
 Copyright (C) 2020  Filippo Erik Negroni
 
@@ -13,14 +14,52 @@ For a copy of the GNU General Public License see <https://www.gnu.org/licenses/>
 
 == Synposis
 
-This project contains everything you need to build a real simracing dashboard that shows information from the game ACC in real time.
+The Simdisplay project contains everything you need to build and run a real simracing dashboard
+showing telemetry information from the racing simulator Assetto Corsa Competizione (ACC), in real time.
 
-A Windows console process reads data from the game's shared memory and streams it to an Arduino-compatible board via the onboard USB-to-Serial connection; The board is connected to an number of LED's and a 16x2 character display and shows the relevant data, such as ABS and TC level, gear, redline RPM, etc.
+A Windows process reads data from ACC's shared memory telemetry and streams it to a supported device
+running the embedded software which is also part of this project.
 
-The complete list of fields is documented in the relevant section of this document. 
+The only supported device at this time is any Arduino Uno R3 compatible board communicating over
+a serial connection to the Windows 10 host running ACC.
+
+The board must be wired to a number of LED's and a Hitachi 16x2 character display
+to shows the relevant data, such as ABS and TC level, gear, redline RPM, etc.
 
 == Hardware and Software
 
-What makes this project interesting is that it is inexpensive and can be assembled with very limited electronics and programming skills.
+What makes this project interesting is that it is inexpensive
+and can be assembled with very limited electronics and programming skills.
 
-The whole process will be documented with wiring and assembly diagrams as well as explanation of what the code does and the protocol used.
+The whole process will be documented with wiring and assembly diagrams
+as well as explanation of what the code does and the protocol used.
+
+== Project folder outline
+
+After cloning or downloading this repository, you will find two folders: `Device` and `Service`.
+
+=== `Device`
+
+Under `Device/UnoR3/arduino-ide/simdisplay` you will find the Arduino IDE project file `simdisplay.ino`.
+
+This is the embedded software that will run on the Arduino Uno R3 board microcontroller:
+it receives telemetry data from the Windows host via the USB-to-serial interface
+and drives all the connected LEDs and the Hitachi 16x2 dot matrix character display.
+
+You must build and upload this software to the Arduino Uno R3, and you must connect
+all the devices the board before being able to see telemetry data.
+
+The Arduino IDE is free software and can be downloaded from `https://www.arduino.cc/en/Main/Software`
+You can compile and upload the project to your Arduino board from the avialble Web Editor without
+installing the IDE on your computer if you so wish.
+
+For more information, refer to the README.adoc file in the folder `Device/UnoR3/arduino-ide`.
+
+=== `Service`
+
+Under `Service/Windows/visualstudio` you will find the Visual Studio 2019 solution file `simdisplay.sln`.
+
+This is the Windows 64-bit Console application that will run on the Windows host
+where ACC is installed and runs from.
+
+For more information, refer to the `README.adoc` in the folder `Service/Windows/visualstudio`.
