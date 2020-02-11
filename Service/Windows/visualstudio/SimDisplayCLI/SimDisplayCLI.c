@@ -97,30 +97,30 @@ float lookupBBOffset(wchar_t *carModel)
 		float bbOffset;
 		wchar_t* carModel;
 	} dict[] = {
-		{ -70.0,	L"amr_v12_vantage_gt3" },
-		{ -70.0,	L"amr_v8_vantage_gt3" },
-		{ -140.0,	L"audi_r8_lms" },
-		{ -140.0,	L"audi_r8_lms_evo" },
-		{ -70.0,	L"bentley_continental_gt3_2016" },
-		{ -70.0,	L"bentley_continental_gt3_2018" },
-		{ -150.0,	L"bmw_m6_gt3" },
-		{ -70.0,	L"jaguar_g3" },
-		{ -170.0,	L"ferrari_488_gt3" },
-		{ -140.0,	L"honda_nsx_gt3" },
-		{ -140.0,	L"honda_nsx_gt3_evo" },
-		{ -140.0,	L"lamborghini_gallardo_rex" },
-		{ -150.0,	L"lamborghini_huracan_gt3" },
-		{ -140.0,	L"lamborghini_huracan_gt3_evo" },
-		{ -140.0,	L"lamborghini_huracan_st" },
-		{ -140.0,	L"lexus_rc_f_gt3" },
-		{ -170.0,	L"mclaren_650s_gt3" },
-		{ -170.0,	L"mclaren_720s_gt3" },
-		{ -150.0,	L"mercedes_amg_gt3" },
-		{ -150.0,	L"nissan_gt_r_gt3_2017" },
-		{ -150.0,	L"nissan_gt_r_gt3_2018" },
-		{ -60.0,	L"porsche_991_gt3_r" },
-		{ -150.0,	L"porsche_991ii_gt3_cup" },
-		{ -210.0,	L"porsche_991ii_gt3_r" },		
+		{ -70.0f,	L"amr_v12_vantage_gt3" },
+		{ -70.0f,	L"amr_v8_vantage_gt3" },
+		{ -140.0f,	L"audi_r8_lms" },
+		{ -140.0f,	L"audi_r8_lms_evo" },
+		{ -70.0f,	L"bentley_continental_gt3_2016" },
+		{ -70.0f,	L"bentley_continental_gt3_2018" },
+		{ -150.0f,	L"bmw_m6_gt3" },
+		{ -70.0f,	L"jaguar_g3" },
+		{ -170.0f,	L"ferrari_488_gt3" },
+		{ -140.0f,	L"honda_nsx_gt3" },
+		{ -140.0f,	L"honda_nsx_gt3_evo" },
+		{ -140.0f,	L"lamborghini_gallardo_rex" },
+		{ -150.0f,	L"lamborghini_huracan_gt3" },
+		{ -140.0f,	L"lamborghini_huracan_gt3_evo" },
+		{ -140.0f,	L"lamborghini_huracan_st" },
+		{ -140.0f,	L"lexus_rc_f_gt3" },
+		{ -170.0f,	L"mclaren_650s_gt3" },
+		{ -170.0f,	L"mclaren_720s_gt3" },
+		{ -150.0f,	L"mercedes_amg_gt3" },
+		{ -150.0f,	L"nissan_gt_r_gt3_2017" },
+		{ -150.0f,	L"nissan_gt_r_gt3_2018" },
+		{ -60.0f,	L"porsche_991_gt3_r" },
+		{ -150.0f,	L"porsche_991ii_gt3_cup" },
+		{ -210.0f,	L"porsche_991ii_gt3_r" },		
 	};
 	for (int i = 0; i < (sizeof(dict) / sizeof (struct DictElem)); ++i) {
 		if (!wcscmp(dict[i].carModel, carModel)) {
@@ -184,7 +184,7 @@ int doSend(int argc, const wchar_t *argv[])
 	}
 
 	struct SimDisplayPacket packet;
-	float bbOffset = 0.0;
+	float bbOffset = 0.0f;
 	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
@@ -201,11 +201,11 @@ int doSend(int argc, const wchar_t *argv[])
 		packet.tcaction = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
 		packet.absaction = (uint8_t)phy->abs;
-		packet.bb = (uint16_t)(phy->brakeBias ? (phy->brakeBias * 1000.0 + bbOffset) : 0);
+		packet.bb = phy->brakeBias ? (uint16_t)(phy->brakeBias * 1000.0f + bbOffset) : 0);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
-		packet.airt = (uint8_t)(phy->airTemp+0.5); // would be nice to track temps going down/up
-		packet.roadt = (uint8_t)(phy->roadTemp+0.5);
+		packet.airt = (uint8_t)(phy->airTemp+0.5f); // would be nice to track temps going down/up
+		packet.roadt = (uint8_t)(phy->roadTemp+0.5f);
 
 		DWORD bytesWritten;
 		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
@@ -295,7 +295,7 @@ int doCsv(void)
 					"%f,%u,%f,%d,%f,%f\n",
 					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, (uint16_t)(phy->brakeBias * 1000.0 + lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
+					phy->brakeBias, (uint16_t)(phy->brakeBias * 1000.0f + lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
