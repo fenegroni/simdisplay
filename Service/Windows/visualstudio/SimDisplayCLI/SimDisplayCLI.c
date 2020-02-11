@@ -132,13 +132,13 @@ float lookupBBOffset(wchar_t *carModel)
 
 int doSend(int argc, const wchar_t *argv[])
 {
-	if (!argv[0]) {
+	const wchar_t *comPortName = argv[0];
+
+	if (!comPortName) {
 		fprintf(stderr, "usage: send <serial_port>\n\n");
 		fprintf(stderr, "<serial_port> is the name of the serial port the device is attached to.\n");
 		return 1;
 	}
-
-	const wchar_t *comPortName = argv[0];
 
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
@@ -304,8 +304,32 @@ int doCsv(void)
 	return 0;
 }
 
-int doReplay(void)
+int doReplay(int argc, const wchar_t *argv[])
 {
+	HANDLE stdinh;
+	HANDLE *input;
+
+	if (!argc) {
+		stdinh = GetStdHandle(STD_INPUT_HANDLE);
+		input = &stdinh;
+		if (*input == INVALID_HANDLE_VALUE) {
+			fprintf(stderr, "Error: GetStdHandle STD_INPUT_HANDLE: %d\n", GetLastError());
+			return 1;
+		}
+		argc = 1;
+		argv[0] = L"stdin";
+	} else {
+		input = malloc(argc * sizeof(HANDLE));
+		if (!input) ExitProcess(1);
+		for (int i = 0; i < argc; ++i) {
+			input[i] = CreateFile(argv[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (INVALID_HANDLE_VALUE == input[i]) {
+				fprintf(stderr, "Error: open %S: %d\n", argv[i], GetLastError());
+				return 1;
+			}
+		}
+	}
+	
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
@@ -314,37 +338,37 @@ int doReplay(void)
 		return 1;
 	}
 
-	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == binFile) {
-		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
-		return 1;
-	}
-
 	HANDLE replayTimer = CreateWaitableTimer(NULL, FALSE, NULL);
 	if (NULL == replayTimer) {
 		fprintf(stderr, "Error: create timer.\n");
 		return 1;
 	}
-	LARGE_INTEGER dueTime;
-	dueTime.QuadPart = -200000LL; // 20ms == 50Hz
-	if (!SetWaitableTimer(replayTimer, &dueTime, 20, NULL, NULL, FALSE)) {
-		printf("Error: SetWaitableTimer: %d\n", GetLastError());
-		return 1;
+
+	for (int i = 0; i < argc; ++i) {
+		LARGE_INTEGER dueTime;
+		dueTime.QuadPart = -200000LL; // 20ms == 50Hz
+		if (!SetWaitableTimer(replayTimer, &dueTime, 20, NULL, NULL, FALSE)) {
+			printf("Error: SetWaitableTimer: %d\n", GetLastError());
+			return 1;
+		}
+		DWORD phyBytesRead;
+		DWORD graBytesRead;
+		DWORD staBytesRead;
+		do {
+			if (WaitForSingleObject(replayTimer, INFINITE) != WAIT_OBJECT_0) {
+				fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
+				return 1;
+			}
+			if (!ReadFile(input[i], phy, sizeof(*phy), &phyBytesRead, NULL)
+				|| !ReadFile(input[i], gra, sizeof(*gra), &graBytesRead, NULL)
+				|| !ReadFile(input[i], sta, sizeof(*sta), &staBytesRead, NULL)) {
+				fprintf(stderr, "Error: ReadFile %S: %d\n", argv[i], GetLastError());
+				return 1;
+			}
+		} while (phyBytesRead || graBytesRead || staBytesRead);
 	}
-	while (WaitForSingleObject(replayTimer, INFINITE) == WAIT_OBJECT_0) {
-		DWORD bytesRead;
-		if (!ReadFile(binFile, phy, sizeof(*phy), &bytesRead, NULL) || bytesRead < sizeof(*phy)) {
-			return 1;
-		}
-		if (!ReadFile(binFile, gra, sizeof(*gra), &bytesRead, NULL) || bytesRead < sizeof(*gra)) {
-			return 1;
-		}
-		if (!ReadFile(binFile, sta, sizeof(*sta), &bytesRead, NULL) || bytesRead < sizeof(*sta)) {
-			return 1;
-		}
-	}
-	fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
-	return 1;
+
+	return 0;
 }
 
 int doHelp(void)
@@ -389,7 +413,7 @@ int wmain(int argc, const wchar_t *argv[])
 	case CSV:
 		return doCsv();
 	case REPLAY:
-		return doReplay();
+		return doReplay(argc-2, argv+2);
 	}
 
 	return 0;
