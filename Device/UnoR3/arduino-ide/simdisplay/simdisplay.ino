@@ -117,12 +117,12 @@ void printDisplayFields()
 {
   static char strbuffer[17];
   
-  printDisplayField(newPacket->abs, oldPacket->abs, "-", "%-2d", DISPLAY_ABS_COLROW);
+  printDisplayField(newPacket->abs, oldPacket->abs, "- ", "%-2d", DISPLAY_ABS_COLROW);
   printDisplayField(newPacket->remlaps, oldPacket->remlaps, "--", "%2d", DISPLAY_REMLAPS_COLROW); 
   printDisplayField(newPacket->tc, oldPacket->tc, " -", "%2d", DISPLAY_TC_COLROW);
   printDisplayField(newPacket->tcc, oldPacket->tcc, "- ", "%-2d", DISPLAY_TCC_COLROW);
   printDisplayFieldBB(newPacket->bb, oldPacket->bb, DISPLAY_BB_COLROW);
-  printDisplayField(newPacket->map, oldPacket->map, "-", "%d", DISPLAY_MAP_COLROW);
+  printDisplayField(newPacket->map, oldPacket->map, "- ", "%-2d", DISPLAY_MAP_COLROW);
   printDisplayField(newPacket->airt, oldPacket->airt, "--", "%2d", DISPLAY_AIRT_COLROW);
   printDisplayField(newPacket->roadt, oldPacket->roadt, "--", "%2d", DISPLAY_ROADT_COLROW);
 }
