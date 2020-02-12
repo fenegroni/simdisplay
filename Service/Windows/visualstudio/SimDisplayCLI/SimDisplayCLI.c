@@ -254,24 +254,47 @@ int doSave(void)
 	return 1;
 }
 
-int doCsv(void)
+int doCsv(int argc, const wchar_t *argv[])
 {
-	fprintf(stderr, "Read accdump.bin contents and write into accdump.csv\n");
-	HANDLE csvFile = CreateFile(TEXT("accdump.csv"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == csvFile) {
-		fprintf(stderr, "Error: create accdump.csv: %d\n", GetLastError());
-		return 1;
+	HANDLE input, output;
+
+	if (!argc) {
+		input = GetStdHandle(STD_INPUT_HANDLE);
+		if (input == INVALID_HANDLE_VALUE) {
+			fprintf(stderr, "Error: GetStdHandle STD_INPUT_HANDLE: %d\n", GetLastError());
+			return 1;
+		}
+		output = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (output == INVALID_HANDLE_VALUE) {
+			fprintf(stderr, "Error: GetStdHandle STD_OUTPUT_HANDLE: %d\n", GetLastError());
+			return 1;
+		}
+	} else {
+		if (argc != 2) {
+			fprintf(stderr, "usage: csv [<input_file_name> <output_file_name>]\n\n");
+			fprintf(stderr, "<input_file_name> is a session data file created using the save command.\n");
+			fprintf(stderr, "<output_file_name> is the name of the CSV output by this command.\n");
+			fprintf(stderr, "If you don't specify the two file names, this command will read from stdin\n");
+			fprintf(stderr, "and write to stdout.\n");
+			return 1;
+		}
+		input = CreateFile(argv[0], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (INVALID_HANDLE_VALUE == input) {
+			fprintf(stderr, "Error: open %S: %d\n", argv[0], GetLastError());
+			return 1;
+		}
+		output = CreateFile(argv[1], GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (INVALID_HANDLE_VALUE == output) {
+			fprintf(stderr, "Error: create %S: %d\n", argv[1], GetLastError());
+			return 1;
+		}
 	}
-	HANDLE binFile = CreateFile(TEXT("accdump.bin"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == binFile) {
-		fprintf(stderr, "Error: open accdump.bin: %d\n", GetLastError());
-		return 1;
-	}
+
 	int maxCsvRecord = 8192;
 	char *csvRecord = malloc(maxCsvRecord);
 	if (!csvRecord) ExitProcess(1);
 	DWORD writtenBytes;
-	if (!WriteFile(csvFile, csvRecord,
+	if (!WriteFile(output, csvRecord,
 			snprintf(csvRecord, maxCsvRecord,
 					"status,rpm,maxrpm,pitlimiteron,gear,"
 					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
@@ -287,10 +310,10 @@ int doCsv(void)
 	struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
 	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
-	while (ReadFile(binFile, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
+	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
 		float bbOffset = lookupBBOffset(sta->carModel);
 		float bb = (phy->brakeBias + 0.000001f) * 1000.0f + bbOffset;
-		if (!WriteFile(csvFile, csvRecord,
+		if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
 					"%d,%d,%d,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
@@ -405,17 +428,20 @@ int wmain(int argc, const wchar_t *argv[])
 		}
 	}
 
+	argc -= 2;
+	argv += 2;
+
 	switch (action) {
 	case HELP:
 		return doHelp();
 	case SEND:
-		return doSend(argc-2, argv+2);
+		return doSend(argc, argv);
 	case SAVE:
 		return doSave();
 	case CSV:
-		return doCsv();
+		return doCsv(argc, argv);
 	case REPLAY:
-		return doReplay(argc-2, argv+2);
+		return doReplay(argc, argv);
 	}
 
 	return 0;
