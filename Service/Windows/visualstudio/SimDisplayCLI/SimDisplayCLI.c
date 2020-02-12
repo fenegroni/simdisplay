@@ -209,8 +209,8 @@ int doSend(int argc, const wchar_t *argv[])
 		packet.bb = bbFromBrakeBias(phy->brakeBias, bbOffset);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
-		packet.airt = (uint8_t)(phy->airTemp+0.5f);
-		packet.roadt = (uint8_t)(phy->roadTemp+0.5f);
+		packet.airt = (uint8_t)phy->airTemp; // match ACC's UI: floor instead of round.
+		packet.roadt = (uint8_t)phy->roadTemp; // match ACC's UI: floor instead of round.
 
 		DWORD bytesWritten;
 		WriteFile(comPort, &packet, sizeof(packet), &bytesWritten, NULL);
