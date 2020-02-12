@@ -130,7 +130,7 @@ float lookupBBOffset(wchar_t *carModel)
 	return 0.0f;
 }
 
-uint16_t brakeBiasToBB(float brakeBias, float offset)
+uint16_t bbFromBrakeBias(float brakeBias, float offset)
 {
 	return brakeBias ? (uint16_t)(brakeBias * 1000.0f + offset + 0.5f) : 0;
 }
@@ -206,7 +206,7 @@ int doSend(int argc, const wchar_t *argv[])
 		packet.tcaction = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
 		packet.absaction = (uint8_t)phy->abs;
-		packet.bb = brakeBiasToBB(phy->brakeBias, bbOffset);
+		packet.bb = bbFromBrakeBias(phy->brakeBias, bbOffset);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
 		packet.airt = (uint8_t)(phy->airTemp+0.5f);
