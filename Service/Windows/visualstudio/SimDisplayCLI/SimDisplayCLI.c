@@ -218,8 +218,30 @@ int doSend(int argc, const wchar_t *argv[])
 	return 1;
 }
 
-int doSave(void)
+int doSave(int argc, const wchar_t *argv[])
 {
+	HANDLE output;
+
+	if (!argc) {
+		output = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (output == INVALID_HANDLE_VALUE) {
+			fprintf(stderr, "Error: GetStdHandle STD_OUTPUT_HANDLE: %d\n", GetLastError());
+			return 1;
+		}
+	} else {
+		if (argc != 1) {
+			fprintf(stderr, "usage: save [<output_file_name>]\n\n");
+			fprintf(stderr, "The current ACC session is saved in <output_file_name>.\n");
+			fprintf(stderr, "If no output is specified, this command writes to stdout.\n");
+			return 1;
+		}
+		output = CreateFile(argv[0], GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (INVALID_HANDLE_VALUE == output) {
+			fprintf(stderr, "Error: create %S: %d\n", argv[1], GetLastError());
+			return 1;
+		}
+	}
+
 	struct ACCPhysics *phy;
 	struct ACCGraphics *gra;
 	struct ACCStatic *sta;
@@ -228,27 +250,22 @@ int doSave(void)
 		return 1;
 	}
 
-	HANDLE dumpFile = CreateFile(TEXT("accdump.bin"), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (INVALID_HANDLE_VALUE == dumpFile) {
-		fprintf(stderr, "Error: create accdump.bin\n");
-		return 1;
-	}
-	HANDLE dumpTimer = CreateWaitableTimer(NULL, FALSE, NULL);
-	if (NULL == dumpTimer) {
+	HANDLE saveTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+	if (NULL == saveTimer) {
 		fprintf(stderr, "Error: create timer.\n");
 		return 1;
 	}
 	LARGE_INTEGER dueTime;
 	dueTime.QuadPart = -200000LL; // 20ms == 50Hz
-	if (!SetWaitableTimer(dumpTimer, &dueTime, 20, NULL, NULL, FALSE)) {
+	if (!SetWaitableTimer(saveTimer, &dueTime, 20, NULL, NULL, FALSE)) {
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
 		return 1;
 	}
 	DWORD bytesWritten;
-	while (WaitForSingleObject(dumpTimer, INFINITE) == WAIT_OBJECT_0) {
-		WriteFile(dumpFile, phy, sizeof(*phy), &bytesWritten, NULL);
-		WriteFile(dumpFile, gra, sizeof(*gra), &bytesWritten, NULL);
-		WriteFile(dumpFile, sta, sizeof(*sta), &bytesWritten, NULL);
+	while (WaitForSingleObject(saveTimer, INFINITE) == WAIT_OBJECT_0) {
+		WriteFile(output, phy, sizeof(*phy), &bytesWritten, NULL);
+		WriteFile(output, gra, sizeof(*gra), &bytesWritten, NULL);
+		WriteFile(output, sta, sizeof(*sta), &bytesWritten, NULL);
 	}
 	fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
 	return 1;
@@ -437,7 +454,7 @@ int wmain(int argc, const wchar_t *argv[])
 	case SEND:
 		return doSend(argc, argv);
 	case SAVE:
-		return doSave();
+		return doSave(argc, argv);
 	case CSV:
 		return doCsv(argc, argv);
 	case REPLAY:
