@@ -130,6 +130,11 @@ float lookupBBOffset(wchar_t *carModel)
 	return 0.0f;
 }
 
+uint16_t brakeBiasToBB(float brakeBias, float offset)
+{
+	return brakeBias ? (uint16_t)(brakeBias * 1000.0f + offset + 0.5f) : 0;
+}
+
 int doSend(int argc, const wchar_t *argv[])
 {
 	const wchar_t *comPortName = argv[0];
@@ -201,7 +206,7 @@ int doSend(int argc, const wchar_t *argv[])
 		packet.tcaction = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
 		packet.absaction = (uint8_t)phy->abs;
-		packet.bb = phy->brakeBias ? (uint16_t)((phy->brakeBias + 0.000001f) * 1000.0f + bbOffset) : 0;
+		packet.bb = brakeBiasToBB(phy->brakeBias, bbOffset);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
 		packet.airt = (uint8_t)(phy->airTemp+0.5f);
@@ -328,16 +333,14 @@ int doCsv(int argc, const wchar_t *argv[])
 	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
 	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
-		float bbOffset = lookupBBOffset(sta->carModel);
-		float bb = (phy->brakeBias + 0.000001f) * 1000.0f + bbOffset;
 		if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
 					"%d,%d,%d,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
-					"%.8f,%u,%f,%d,%f,%f\n",
+					"%.7f,%u,%f,%d,%f,%f\n",
 					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, (uint16_t)bb, gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
