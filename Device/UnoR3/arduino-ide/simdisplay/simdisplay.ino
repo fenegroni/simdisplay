@@ -140,7 +140,7 @@ void loop()
       Serial.begin(9600);
       break;
     }
-    if (SDP_STATUS_LIVE != newPacket->status) {
+    if (SDP_STATUS_LIVE != newPacket->status && SDP_STATUS_PAUSE != newPacket->status) {
       printDisplayMask();
       continue;
     }
