@@ -9,6 +9,6 @@ so they are not too bright or too dim.
 From the Elegoo Super Starter set,
 I got a few blue, red, green and yellow LEDs.
 
-Green LED: 10mA - 2.3V
-Red LED: ?mA - 1.8V
-Yellow LED: ?mA - 1.8V
+Green LED: 0.3mA - 2.3V - 10KΩ
+Red LED: ?mA - 1.8V - 
+Yellow LED: 2mA - 1.8V - 1KΩ
