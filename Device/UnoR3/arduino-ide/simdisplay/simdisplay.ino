@@ -45,14 +45,15 @@ wiper to LCD VO pin (pin 3)
 #include "SimDisplayProtocol.h"
 
 // ----------------------  0123456789012345
-#define DISPLAY_MASK_ROW0 "-   R:--    -/- "
-#define DISPLAY_MASK_ROW1 "--.-% M-  --/--C"
-#define DISPLAY_ABS_COLROW      0, 0
-#define DISPLAY_REMLAPS_COLROW  6, 0
+#define DISPLAY_MASK_ROW0 "-   --.-%   -/- "
+#define DISPLAY_MASK_ROW1 "R--  M-   --/--C"
+
+#define DISPLAY_ABS_COLROW      0,  0
+#define DISPLAY_REMLAPS_COLROW  1,  1
 #define DISPLAY_TC_COLROW       11, 0
 #define DISPLAY_TCC_COLROW      14, 0
-#define DISPLAY_BB_COLROW       0, 1
-#define DISPLAY_MAP_COLROW      7, 1
+#define DISPLAY_BB_COLROW       4,  0
+#define DISPLAY_MAP_COLROW      6,  1
 #define DISPLAY_AIRT_COLROW     10, 1
 #define DISPLAY_ROADT_COLROW    13, 1
 
