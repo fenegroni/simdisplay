@@ -1,0 +1,11 @@
+= How to contribute to Simdisplay
+
+We manage our project in a Kanban board on Trello:
+
+https://trello.com/b/TgArFCJ1/simdisplay
+
+The board is public but only contributors can add and resolve issues.
+
+Take a look at the list of items in the Backlog column
+and if you want to contribute, get in touch so we can track the item
+you'd like to help with.
