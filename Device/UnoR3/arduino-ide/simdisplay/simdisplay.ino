@@ -19,6 +19,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /*
+FIXME: in feature/show-rpm-redline the pins are configured differently.
+
+LED Pins 2 - 3 - 4 - 5 - 6 - 7 - 8 - 9
+These represent an RPM redline, whereby LEDs are either fully on or fully off.
+The first LED is lit after an optimal upshift.
+The LEDs are lit up in sequence, with equal percentage, to show the RPM
+value approaching the Optimal shift point.
+When the Optimal shift point is reached, the last LED is lit.
+Past that, the LEDs will blink to indicate we are close to the maxrpm.
+
+The pin layout will be merged once work in this branch is complete.
+We will use 6 pins: 3 for the redline rpm LEDs
+and 3 for the gear indicator segment LEDs.
+If necessary there are analog input pins that can be configured
+as digital output to be used for damage, TC active and ABS active LEDs.
+
+*/
+
+/*
 The LiquidCrystal library works with all LCD displays that are compatible with the
 Hitachi HD44780 driver. There are many of them out there, and you
 can usually tell them by the 16-pin interface.
@@ -60,7 +79,7 @@ wiper to LCD VO pin (pin 3)
 // We use the display's 4 bit interface during development.
 // If we have more pins available we can make it faster
 // by switching to the 8 bit interface.
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // TODO: make it clearer how we are initialising the library.
+//LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // TODO: make it clearer how we are initialising the library.
 
 static struct SimDisplayPacket packet[2];
 static struct SimDisplayPacket *newPacket = &packet[0];
@@ -68,22 +87,14 @@ static struct SimDisplayPacket *oldPacket = &packet[1];
 
 void lcdPrint(char *str, int col, int row)
 {
-  lcd.setCursor(col, row);
-  lcd.print(str);
+  //lcd.setCursor(col, row);
+  //lcd.print(str);
 }
 
 void printDisplayMask()
 {
   lcdPrint(DISPLAY_MASK_ROW0, 0, 0);
   lcdPrint(DISPLAY_MASK_ROW1, 0, 1);
-}
-
-void setup()
-{
-  pinMode(LED_BUILTIN, OUTPUT);
-  lcd.begin(16, 2);
-  printDisplayMask();
-  Serial.begin(9600);
 }
 
 void printDisplayField(int newval, int oldval, char *zerostr, char *fmtstr, int col, int row)
@@ -128,6 +139,14 @@ void printDisplayFields()
   printDisplayField(newPacket->roadt, oldPacket->roadt, "--", "%2d", DISPLAY_ROADT_COLROW);
 }
 
+void setup()
+{
+  pinMode(LED_BUILTIN, OUTPUT);
+  //lcd.begin(16, 2); FIXME reinstate
+  //printDisplayMask(); FIXME reinstate
+  Serial.begin(9600);
+}
+
 void loop()
 {
   while (Serial.available() >= sizeof(struct SimDisplayPacket)) {
@@ -137,15 +156,15 @@ void loop()
       // something went wrong, we reset ourselves.
       Serial.end();
       delay(2000);
-      printDisplayMask();
+      //printDisplayMask(); FIXME reinstate
       Serial.begin(9600);
       break;
     }
     if (SDP_STATUS_LIVE != newPacket->status && SDP_STATUS_PAUSE != newPacket->status) {
-      printDisplayMask();
+      //printDisplayMask();
       continue;
     }
-    printDisplayFields();
+    //printDisplayFields(); FIXME reinstate
     struct SimDisplayPacket *tmp = oldPacket;
     oldPacket = newPacket;
     newPacket = tmp;
