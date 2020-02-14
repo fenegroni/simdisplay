@@ -9,8 +9,16 @@ so they are not too bright or too dim.
 From the Elegoo Super Starter set,
 I got a few blue, red, green and yellow LEDs.
 
+To tune the brightness, these are the values I settled on for the first prototype:
+
 * Green LED: 0.3mA - 2.3V - 10KΩ
 
-* Red LED: ?mA - 1.8V - 
+* Red LED: 10mA - 1.8V - 330Ω
 
 * Yellow LED: 2mA - 1.8V - 1KΩ
+
+There will be 3 green, 3 yellow and 2 slightly brighter red LEDs, arranged from left to right:
+
+`G G G Y Y Y R R`
+
+Where G is green, Y is yellow, R is red.
