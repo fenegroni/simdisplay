@@ -337,7 +337,7 @@ int doCsv(int argc, const wchar_t *argv[])
 				snprintf(csvRecord, maxCsvRecord,
 					"%d,%d,%d,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
-					"%.7f,%u,%f,%d,%f,%f\n",
+					"%f,%u,%f,%d,%f,%f\n",
 					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
 					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
