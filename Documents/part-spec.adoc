@@ -1,0 +1,14 @@
+= Specifications for some of the hardware parts for Simdisplay 
+
+== LEDs
+The project requires 8 LEDs for the RPM redline;
+these have to be chosen carefully
+so they are not too bright or too dim.
+
+=== Elegoo LEDs
+From the Elegoo Super Starter set,
+I got a few blue, red, green and yellow LEDs.
+
+Green LED: 10mA - 2.3V
+Red LED: ?mA - 1.8V
+Yellow LED: ?mA - 1.8V
