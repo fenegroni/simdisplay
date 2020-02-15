@@ -28,7 +28,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define ACC_RACE 2
 #define ACC_HOTLAP 3
 #define ACC_TIME_ATTACK 4
-#define ACCDRIFT 5
+#define ACC_DRIFT 5
 #define ACC_DRAG 6
 #define ACC_HOTSTINT 7
 #define ACC_HOTLAPSUPERPOLE 8
@@ -204,7 +204,7 @@ struct ACCStatic
 	int sectorCount;
 	float maxTorque;
 	float maxPower;
-	int	maxRpm;
+	int maxRpm;
 	float maxFuel;
 	float suspensionMaxTravel[4];
 	float tyreRadius[4];

@@ -319,8 +319,8 @@ int doCsv(int argc, const wchar_t *argv[])
 	if (!WriteFile(output, csvRecord,
 			snprintf(csvRecord, maxCsvRecord,
 					"status,rpm,maxrpm,pitlimiteron,gear,"
-					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
-					"bb,ibb,fuellaps,map,airt,roadt\n"),
+					"tc,tccut,tcaction,i_tcaction,abs,absaction,i_absaction,"
+					"bb,ibb,fuellaps,map,airt,roadt,car_model\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
 		return 1;
@@ -337,10 +337,10 @@ int doCsv(int argc, const wchar_t *argv[])
 				snprintf(csvRecord, maxCsvRecord,
 					"%d,%d,%d,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
-					"%f,%u,%f,%d,%f,%f\n",
+					"%f,%u,%f,%d,%f,%f,%S\n",
 					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp, sta->carModel),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
