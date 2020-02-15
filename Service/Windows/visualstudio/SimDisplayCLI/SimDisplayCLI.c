@@ -33,6 +33,38 @@ enum mapAcpmf_action {
 	MAPACPMF_OPEN_EXISTING
 };
 
+static struct CarModelData {
+	int optRpm;
+	int shiftRpm;
+	float bbOffset;
+	wchar_t *carModel;
+} carModelDict[] = {
+	{ 0, 0, -70.0f,		L"amr_v12_vantage_gt3" },
+	{ 0, 0, -70.0f,		L"amr_v8_vantage_gt3" },
+	{ 0, 0, -140.0f,	L"audi_r8_lms" },
+	{ 0, 0, -140.0f,	L"audi_r8_lms_evo" },
+	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2016" },
+	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2018" },
+	{ 0, 0, -150.0f,	L"bmw_m6_gt3" },
+	{ 0, 0, -70.0f,		L"jaguar_g3" },
+	{ 0, 0, -170.0f,	L"ferrari_488_gt3" },
+	{ 0, 0, -140.0f,	L"honda_nsx_gt3" },
+	{ 0, 0, -140.0f,	L"honda_nsx_gt3_evo" },
+	{ 0, 0, -140.0f,	L"lamborghini_gallardo_rex" },
+	{ 0, 0, -150.0f,	L"lamborghini_huracan_gt3" },
+	{ 0, 0, -140.0f,	L"lamborghini_huracan_gt3_evo" },
+	{ 0, 0, -140.0f,	L"lamborghini_huracan_st" },
+	{ 0, 0, -140.0f,	L"lexus_rc_f_gt3" },
+	{ 0, 0, -170.0f,	L"mclaren_650s_gt3" },
+	{ 0, 0, -170.0f,	L"mclaren_720s_gt3" },
+	{ 0, 0, -150.0f,	L"mercedes_amg_gt3" },
+	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2017" },
+	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2018" },
+	{ 0, 0, -60.0f,		L"porsche_991_gt3_r" },
+	{ 0, 0, -150.0f,	L"porsche_991ii_gt3_cup" },
+	{ 0, 0, -210.0f,	L"porsche_991ii_gt3_r" },
+};
+
 const wchar_t acpmf_physics[] = L"Local\\acpmf_physics";
 const wchar_t acpmf_graphics[] = L"Local\\acpmf_graphics";
 const wchar_t acpmf_static[] = L"Local\\acpmf_static";
@@ -91,37 +123,8 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	return err;
 }
 
-float lookupBBOffset(wchar_t *carModel)
+float lookupCarModelData(wchar_t *carModel)
 {
-	static struct DictElem {
-		float bbOffset;
-		wchar_t* carModel;
-	} dict[] = {
-		{ -70.0f,	L"amr_v12_vantage_gt3" },
-		{ -70.0f,	L"amr_v8_vantage_gt3" },
-		{ -140.0f,	L"audi_r8_lms" },
-		{ -140.0f,	L"audi_r8_lms_evo" },
-		{ -70.0f,	L"bentley_continental_gt3_2016" },
-		{ -70.0f,	L"bentley_continental_gt3_2018" },
-		{ -150.0f,	L"bmw_m6_gt3" },
-		{ -70.0f,	L"jaguar_g3" },
-		{ -170.0f,	L"ferrari_488_gt3" },
-		{ -140.0f,	L"honda_nsx_gt3" },
-		{ -140.0f,	L"honda_nsx_gt3_evo" },
-		{ -140.0f,	L"lamborghini_gallardo_rex" },
-		{ -150.0f,	L"lamborghini_huracan_gt3" },
-		{ -140.0f,	L"lamborghini_huracan_gt3_evo" },
-		{ -140.0f,	L"lamborghini_huracan_st" },
-		{ -140.0f,	L"lexus_rc_f_gt3" },
-		{ -170.0f,	L"mclaren_650s_gt3" },
-		{ -170.0f,	L"mclaren_720s_gt3" },
-		{ -150.0f,	L"mercedes_amg_gt3" },
-		{ -150.0f,	L"nissan_gt_r_gt3_2017" },
-		{ -150.0f,	L"nissan_gt_r_gt3_2018" },
-		{ -60.0f,	L"porsche_991_gt3_r" },
-		{ -150.0f,	L"porsche_991ii_gt3_cup" },
-		{ -210.0f,	L"porsche_991ii_gt3_r" },		
-	};
 	for (int i = 0; i < (sizeof(dict) / sizeof (struct DictElem)); ++i) {
 		if (!wcscmp(dict[i].carModel, carModel)) {
 			return dict[i].bbOffset;
@@ -194,11 +197,12 @@ int doSend(int argc, const wchar_t *argv[])
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
 		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
-			bbOffset = lookupBBOffset(sta->carModel);
+			bbOffset = lookupCarModelData(sta->carModel)->bbOffset;
 		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
 		packet.maxrpm = sta->maxRpm;
+		packet.optrpm = lookup
 		packet.pitlimiter = phy->pitLimiterOn;
 		packet.gear = phy->gear; // 0 = Reverse, 1 = Neutra, 2 = 1st, 3 = 2nd, ..., 7 = 6th.
 		packet.tc = gra->TC;
