@@ -76,6 +76,15 @@ wiper to LCD VO pin (pin 3)
 #define DISPLAY_AIRT_COLROW     10, 1
 #define DISPLAY_ROADT_COLROW    13, 1
 
+#define RLRPM_1 2
+#define RLRPM_2 3
+#define RLRPM_3 4
+#define RLRPM_4 5
+#define RLRPM_5 6
+#define RLRPM_6 7
+#define RLRPM_7 8
+#define RLRPM_8 9
+
 // We use the display's 4 bit interface during development.
 // If we have more pins available we can make it faster
 // by switching to the 8 bit interface.
@@ -144,6 +153,15 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
   //lcd.begin(16, 2); FIXME reinstate
   //printDisplayMask(); FIXME reinstate
+  pinMode(RLRPM_1, OUTPUT);
+  pinMode(RLRPM_2, OUTPUT);
+  pinMode(RLRPM_3, OUTPUT);
+  pinMode(RLRPM_4, OUTPUT);
+  pinMode(RLRPM_5, OUTPUT);
+  pinMode(RLRPM_6, OUTPUT);
+  pinMode(RLRPM_7, OUTPUT);
+  pinMode(RLRPM_8, OUTPUT);
+  
   Serial.begin(9600);
 }
 
@@ -164,6 +182,7 @@ void loop()
       //printDisplayMask();
       continue;
     }
+    // Insert code to light up RPM here
     //printDisplayFields(); FIXME reinstate
     struct SimDisplayPacket *tmp = oldPacket;
     oldPacket = newPacket;
