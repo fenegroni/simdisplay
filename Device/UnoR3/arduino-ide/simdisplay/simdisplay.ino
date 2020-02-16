@@ -183,6 +183,7 @@ void loop()
       continue;
     }
     // Insert code to light up RPM here
+    ...
     //printDisplayFields(); FIXME reinstate
     struct SimDisplayPacket *tmp = oldPacket;
     oldPacket = newPacket;
