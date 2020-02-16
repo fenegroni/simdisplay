@@ -65,3 +65,14 @@ This is the Windows 64-bit Console application that will run on the Windows host
 where ACC is installed and runs from.
 
 For more information, refer to the `README.adoc` in the folder `Service/Windows/visualstudio`.
+
+== Design decisions
+
+=== Redline RPM LEDs
+
+The shift rpm value is the value that should trigger the last led to
+light up, or optionally (to be decided) the entire line of leds to
+blink, so the driver can shift to the next gear.
+The optimum rpm is the rpm the engine will have the most torque, which
+normally would be the rpm it lands on after an upshift.
+This should light up the first led on the rpm line.
