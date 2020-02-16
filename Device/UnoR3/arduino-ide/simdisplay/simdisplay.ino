@@ -87,6 +87,16 @@ enum {
   RLLEDPIN_8 = 9
 };
 
+static void digitalWriteFast(uint8_t pin, uint8_t x)
+{
+  if (pin / 8) { // pin >= 8
+    PORTB ^= (-x ^ PORTB) & (1 << (pin % 8));
+  }
+  else {
+    PORTD ^= (-x ^ PORTD) & (1 << (pin % 8));
+  }
+}
+
 // We use the display's 4 bit interface during development.
 // If we have more pins available we can make it faster
 // by switching to the 8 bit interface.
@@ -154,27 +164,25 @@ static int rlledpins[] = {RLLEDPIN_1, RLLEDPIN_2, RLLEDPIN_3, RLLEDPIN_4, RLLEDP
 
 static void printRedline()
 {
+  int steprpm = (newPacket->shftrpm - newPacket->optrpm) / 7; // 7250 - 5600 = 1650; 1650 / 7 = 235
   /*
-    1 optrpm
-    2 optrpm + 1 * step
-    3 optrpm + 2 * step
-    4 optrpm + 3 * step
-    5 optrpm + 4 * step
-    6 optrpm + 5 * step
-    7 optrpm + 6 * step
-    8 shftrpm (7 steps)
-   */
-  int step = (newPacket->shftrpm - newPacket->optrpm) / 7; // 7250 - 5600 = 1650; 1650 / 7 = 235
-
-  // switch leds on and off in one loop!
-  for (int led = 0, ledrpm = newPacket->optrpm; led < 8; ++led, ledrpm += step) {
+    0 = optrpm = 5600
+    1 = optrpm + steprpm = 5835
+    2 = optrpm + 2*steprpm = 6070
+    3 = optrpm + 3*steprpm = 6305
+    4 = optrpm + 4*steprpm = 6540
+    5 = optrpm + 5*steprpm = 6775
+    6 = optrpm + 6*steprpm = 7010
+    7 = optrpm + 7*steprpm = 7245
+  */
+  
+  for (int led = 0, ledrpm = newPacket->optrpm; led < 8; ++led, ledrpm += steprpm) {
     if (newPacket->rpm >= ledrpm) {
       digitalWrite(rlledpins[led], HIGH);
     } else {
       digitalWrite(rlledpins[led], LOW);
     }
   }
-
 }
 
 void setup()
@@ -205,6 +213,7 @@ void loop()
     }
     if (SDP_STATUS_LIVE != newPacket->status && SDP_STATUS_PAUSE != newPacket->status) {
       //printDisplayMask();
+      // FIXME clear rpm redline too!
       continue;
     }
     // Insert code to light up RPM here
@@ -218,8 +227,6 @@ void loop()
 
     if (time > 20000) {
       digitalWrite(LED_BUILTIN, HIGH);
-    } else {
-      digitalWrite(LED_BUILTIN, LOW);
     }
   }
 }
