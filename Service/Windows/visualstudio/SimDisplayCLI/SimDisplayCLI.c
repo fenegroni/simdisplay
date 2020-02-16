@@ -75,6 +75,27 @@ struct CarModelData * lookupCarModelData(wchar_t *carModel)
 	return 0;
 }
 
+int populateCarModelData(struct CarModelData *retdata, int maxRpm)
+{
+	struct CarModelData *data = lookupCarModelData(retdata->carModel);
+	if (data) {
+		*retdata = *data;
+	} else {
+		retdata->carModel = L"default_car_data";
+		retdata->bbOffset = 0.0f;
+		retdata->optRpm = 0;
+		retdata->shiftRpm = 0;
+	}
+	// FIXME: once the LUT is fully populated this won't be necessary anymore
+	if (0 == retdata->optRpm) {
+		retdata->optRpm = maxRpm * 95 / 100;
+	}
+	if (0 == retdata->shiftRpm) {
+		retdata->shiftRpm = maxRpm * 75 / 100;
+	}
+	return data ? 1 : 0;
+}
+
 const wchar_t acpmf_physics[] = L"Local\\acpmf_physics";
 const wchar_t acpmf_graphics[] = L"Local\\acpmf_graphics";
 const wchar_t acpmf_static[] = L"Local\\acpmf_static";
@@ -138,16 +159,6 @@ uint16_t bbFromBrakeBias(float brakeBias, float offset)
 	return brakeBias ? (uint16_t)(brakeBias * 1000.0f + offset + 0.5f) : 0;
 }
 
-uint16_t calcOptrpm(int maxRpm)
-{
-	return (uint16_t)(maxRpm * 0.95);
-}
-
-uint16_t calcShftrpm(int maxRpm)
-{
-	return (uint16_t)(maxRpm * 0.75);
-}
-
 int doSend(int argc, const wchar_t *argv[])
 {
 	const wchar_t *comPortName = argv[0];
@@ -202,37 +213,27 @@ int doSend(int argc, const wchar_t *argv[])
 	}
 
 	struct SimDisplayPacket packet;
-	uint16_t optrpm = 0;
-	uint16_t shftrpm = 0;
-	float bbOffset = 0.0f;
+	struct CarModelData cardata = { 0 };
 	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
 		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
-			struct CarModelData *data = lookupCarModelData(sta->carModel);
-			if (data) {
-				bbOffset = data->bbOffset;
-				optrpm = data->optRpm;
-				shftrpm = data->shiftRpm;
-			} else {
-				bbOffset = 0.0f;
-				optrpm = calcOptrpm(sta->maxRpm);
-				shftrpm = calcShftrpm(sta->maxRpm);
-			}
+			cardata.carModel = sta->carModel;
+			populateCarModelData(&cardata, sta->maxRpm);
 		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
 		packet.maxrpm = sta->maxRpm;
-		packet.optrpm = optrpm;
-		packet.shftrpm = shftrpm;
-		packet.pitlimiter = phy->pitLimiterOn;
+		packet.optrpm = cardata.optRpm;
+		packet.shftrpm = cardata.shiftRpm;
+		packet.pitlim = phy->pitLimiterOn;
 		packet.gear = phy->gear; // 0 = Reverse, 1 = Neutra, 2 = 1st, 3 = 2nd, ..., 7 = 6th.
 		packet.tc = gra->TC;
 		packet.tcc = gra->TCCut;
-		packet.tcaction = (uint8_t)phy->tc;
+		packet.tcact = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
-		packet.absaction = (uint8_t)phy->abs;
-		packet.bb = bbFromBrakeBias(phy->brakeBias, bbOffset);
+		packet.absact = (uint8_t)phy->abs;
+		packet.bb = bbFromBrakeBias(phy->brakeBias, cardata.bbOffset);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
 		packet.airt = (uint8_t)phy->airTemp; // match ACC's UI: floor instead of round.
@@ -344,7 +345,7 @@ int doCsv(int argc, const wchar_t *argv[])
 	DWORD writtenBytes;
 	if (!WriteFile(output, csvRecord,
 			snprintf(csvRecord, maxCsvRecord,
-					"status,rpm,maxrpm,pitlimiteron,gear,"
+					"status,rpm,maxrpm,optrpm,shiftrpm,pitlimiteron,gear,"
 					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
 					"bb,ibb,fuellaps,map,airt,roadt\n"),
 			&writtenBytes, NULL)) {
@@ -359,15 +360,17 @@ int doCsv(int argc, const wchar_t *argv[])
 	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
 	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
-		struct CarModelData *data = lookupCarModelData(sta->carModel);
+		struct CarModelData data;
+		data.carModel = sta->carModel;
+		populateCarModelData(&data, sta->maxRpm);
 		if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
-					"%d,%d,%d,%d,%d,"
+					"%d,%d,%d,%d,%d,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
 					"%f,%u,%f,%d,%f,%f\n",
-					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
+					gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data ? data->bbOffset : 0.0f), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
