@@ -76,14 +76,16 @@ wiper to LCD VO pin (pin 3)
 #define DISPLAY_AIRT_COLROW     10, 1
 #define DISPLAY_ROADT_COLROW    13, 1
 
-#define RLRPM_1 2
-#define RLRPM_2 3
-#define RLRPM_3 4
-#define RLRPM_4 5
-#define RLRPM_5 6
-#define RLRPM_6 7
-#define RLRPM_7 8
-#define RLRPM_8 9
+enum {
+  RLLEDPIN_1 = 2,
+  RLLEDPIN_2 = 3,
+  RLLEDPIN_3 = 4,
+  RLLEDPIN_4 = 5,
+  RLLEDPIN_5 = 6,
+  RLLEDPIN_6 = 7,
+  RLLEDPIN_7 = 8,
+  RLLEDPIN_8 = 9
+};
 
 // We use the display's 4 bit interface during development.
 // If we have more pins available we can make it faster
@@ -94,19 +96,19 @@ static struct SimDisplayPacket packet[2];
 static struct SimDisplayPacket *newPacket = &packet[0];
 static struct SimDisplayPacket *oldPacket = &packet[1];
 
-void lcdPrint(char *str, int col, int row)
+static void lcdPrint(char *str, int col, int row)
 {
   //lcd.setCursor(col, row);
   //lcd.print(str);
 }
 
-void printDisplayMask()
+static void printDisplayMask()
 {
   lcdPrint(DISPLAY_MASK_ROW0, 0, 0);
   lcdPrint(DISPLAY_MASK_ROW1, 0, 1);
 }
 
-void printDisplayField(int newval, int oldval, char *zerostr, char *fmtstr, int col, int row)
+static void printDisplayField(int newval, int oldval, char *zerostr, char *fmtstr, int col, int row)
 {
   static char strbuffer[17];
   
@@ -120,7 +122,7 @@ void printDisplayField(int newval, int oldval, char *zerostr, char *fmtstr, int 
   }
 }
 
-void printDisplayFieldBB(int newval, int oldval, int col, int row)
+static void printDisplayFieldBB(int newval, int oldval, int col, int row)
 {
   static char strbuffer[17];
   
@@ -134,7 +136,7 @@ void printDisplayFieldBB(int newval, int oldval, int col, int row)
   }
 }
 
-void printDisplayFields()
+static void printDisplayFields()
 {
   static char strbuffer[17];
   
@@ -148,19 +150,42 @@ void printDisplayFields()
   printDisplayField(newPacket->roadt, oldPacket->roadt, "--", "%2d", DISPLAY_ROADT_COLROW);
 }
 
+static int rlledpins[] = {RLLEDPIN_1, RLLEDPIN_2, RLLEDPIN_3, RLLEDPIN_4, RLLEDPIN_5, RLLEDPIN_6, RLLEDPIN_7, RLLEDPIN_8 };
+
+static void printRedline()
+{
+  /*
+    1 optrpm
+    2 optrpm + 1 * step
+    3 optrpm + 2 * step
+    4 optrpm + 3 * step
+    5 optrpm + 4 * step
+    6 optrpm + 5 * step
+    7 optrpm + 6 * step
+    8 shftrpm (7 steps)
+   */
+  int step = (newPacket->shftrpm - newPacket->optrpm) / 7; // 7250 - 5600 = 1650; 1650 / 7 = 235
+
+  // switch leds on and off in one loop!
+  for (int led = 0, ledrpm = newPacket->optrpm; led < 8; ++led, ledrpm += step) {
+    if (newPacket->rpm >= ledrpm) {
+      digitalWrite(rlledpins[led], HIGH);
+    } else {
+      digitalWrite(rlledpins[led], LOW);
+    }
+  }
+
+}
+
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
   //lcd.begin(16, 2); FIXME reinstate
   //printDisplayMask(); FIXME reinstate
-  pinMode(RLRPM_1, OUTPUT);
-  pinMode(RLRPM_2, OUTPUT);
-  pinMode(RLRPM_3, OUTPUT);
-  pinMode(RLRPM_4, OUTPUT);
-  pinMode(RLRPM_5, OUTPUT);
-  pinMode(RLRPM_6, OUTPUT);
-  pinMode(RLRPM_7, OUTPUT);
-  pinMode(RLRPM_8, OUTPUT);
+
+  for (int led = 0; led < 8; ++led) {
+    pinMode(rlledpins[led], OUTPUT);
+  }
   
   Serial.begin(9600);
 }
@@ -183,7 +208,7 @@ void loop()
       continue;
     }
     // Insert code to light up RPM here
-    ...
+    printRedline();
     //printDisplayFields(); FIXME reinstate
     struct SimDisplayPacket *tmp = oldPacket;
     oldPacket = newPacket;
