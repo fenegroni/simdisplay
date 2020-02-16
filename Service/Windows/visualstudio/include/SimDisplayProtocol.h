@@ -25,6 +25,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 struct SimDisplayPacket {
 	uint8_t status;
 	uint16_t rpm;
+	uint16_t optrpm;
+	uint16_t shftrpm;
 	uint16_t maxrpm;
 	uint8_t pitlimiter;
 	uint8_t gear;

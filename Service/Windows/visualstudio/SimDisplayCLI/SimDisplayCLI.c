@@ -44,7 +44,7 @@ static struct CarModelData {
 	{ 0, 0, -140.0f,	L"audi_r8_lms" },
 	{ 0, 0, -140.0f,	L"audi_r8_lms_evo" },
 	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2016" },
-	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2018" },
+	{ 5700, 7300, -70.0f,	L"bentley_continental_gt3_2018" },
 	{ 0, 0, -150.0f,	L"bmw_m6_gt3" },
 	{ 0, 0, -70.0f,		L"jaguar_g3" },
 	{ 0, 0, -170.0f,	L"ferrari_488_gt3" },
@@ -62,8 +62,18 @@ static struct CarModelData {
 	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2018" },
 	{ 0, 0, -60.0f,		L"porsche_991_gt3_r" },
 	{ 0, 0, -150.0f,	L"porsche_991ii_gt3_cup" },
-	{ 0, 0, -210.0f,	L"porsche_991ii_gt3_r" },
+	{ 7100, 9000, -210.0f,	L"porsche_991ii_gt3_r" },
 };
+
+struct CarModelData * lookupCarModelData(wchar_t *carModel)
+{
+	for (int i = 0; i < (sizeof carModelDict / sizeof(struct CarModelData)); ++i) {
+		if (!wcscmp(carModelDict[i].carModel, carModel)) {
+			return &carModelDict[i];
+		}
+	}
+	return 0;
+}
 
 const wchar_t acpmf_physics[] = L"Local\\acpmf_physics";
 const wchar_t acpmf_graphics[] = L"Local\\acpmf_graphics";
@@ -123,19 +133,19 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	return err;
 }
 
-float lookupCarModelData(wchar_t *carModel)
-{
-	for (int i = 0; i < (sizeof(dict) / sizeof (struct DictElem)); ++i) {
-		if (!wcscmp(dict[i].carModel, carModel)) {
-			return dict[i].bbOffset;
-		}
-	}
-	return 0.0f;
-}
-
 uint16_t bbFromBrakeBias(float brakeBias, float offset)
 {
 	return brakeBias ? (uint16_t)(brakeBias * 1000.0f + offset + 0.5f) : 0;
+}
+
+uint16_t calcOptrpm(int maxRpm)
+{
+	return (uint16_t)(maxRpm * 0.95);
+}
+
+uint16_t calcShftrpm(int maxRpm)
+{
+	return (uint16_t)(maxRpm * 0.75);
 }
 
 int doSend(int argc, const wchar_t *argv[])
@@ -192,17 +202,29 @@ int doSend(int argc, const wchar_t *argv[])
 	}
 
 	struct SimDisplayPacket packet;
+	uint16_t optrpm = 0;
+	uint16_t shftrpm = 0;
 	float bbOffset = 0.0f;
 	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
 		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
-			bbOffset = lookupCarModelData(sta->carModel)->bbOffset;
+			struct CarModelData *data = lookupCarModelData(sta->carModel);
+			if (data) {
+				bbOffset = data->bbOffset;
+				optrpm = data->optRpm;
+				shftrpm = data->shiftRpm;
+			} else {
+				bbOffset = 0.0f;
+				optrpm = calcOptrpm(sta->maxRpm);
+				shftrpm = calcShftrpm(sta->maxRpm);
+			}
 		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
 		packet.maxrpm = sta->maxRpm;
-		packet.optrpm = lookup
+		packet.optrpm = optrpm;
+		packet.shftrpm = shftrpm;
 		packet.pitlimiter = phy->pitLimiterOn;
 		packet.gear = phy->gear; // 0 = Reverse, 1 = Neutra, 2 = 1st, 3 = 2nd, ..., 7 = 6th.
 		packet.tc = gra->TC;
@@ -337,6 +359,7 @@ int doCsv(int argc, const wchar_t *argv[])
 	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
 	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
+		struct CarModelData *data = lookupCarModelData(sta->carModel);
 		if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
 					"%d,%d,%d,%d,%d,"
@@ -344,7 +367,7 @@ int doCsv(int argc, const wchar_t *argv[])
 					"%f,%u,%f,%d,%f,%f\n",
 					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data ? data->bbOffset : 0.0f), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
