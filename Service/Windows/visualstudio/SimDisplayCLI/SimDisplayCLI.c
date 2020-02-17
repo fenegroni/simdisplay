@@ -44,7 +44,7 @@ static struct CarModelData {
 	{ 0, 0, -140.0f,	L"audi_r8_lms" },
 	{ 0, 0, -140.0f,	L"audi_r8_lms_evo" },
 	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2016" },
-	{ 5700, 7300, -70.0f,	L"bentley_continental_gt3_2018" },
+	{ 6000, 7250, -70.0f,	L"bentley_continental_gt3_2018" },
 	{ 0, 0, -150.0f,	L"bmw_m6_gt3" },
 	{ 0, 0, -70.0f,		L"jaguar_g3" },
 	{ 0, 0, -170.0f,	L"ferrari_488_gt3" },
@@ -303,6 +303,20 @@ int doSave(int argc, const wchar_t *argv[])
 	return 1;
 }
 
+static void printRedline(char leds[9], uint16_t rpm, uint16_t shiftrpm, uint16_t optrpm)
+{
+	int steprpm = (shiftrpm - optrpm) / 7; // 7250 - 5600 = 1650; 1650 / 7 = 235
+
+	for (int led = 0, ledrpm = optrpm; led < 8; ++led, ledrpm += steprpm) {
+		if (rpm >= ledrpm) {
+			leds[led] = '1';
+		} else {
+			leds[led] = '0';
+		}
+	}
+	leds[8] = '\0';
+}
+
 int doCsv(int argc, const wchar_t *argv[])
 {
 	HANDLE input, output;
@@ -345,7 +359,7 @@ int doCsv(int argc, const wchar_t *argv[])
 	DWORD writtenBytes;
 	if (!WriteFile(output, csvRecord,
 			snprintf(csvRecord, maxCsvRecord,
-					"status,rpm,maxrpm,optrpm,shiftrpm,pitlimiteron,gear,"
+					"status,rpm,maxrpm,optrpm,shiftrpm,leds,pitlimiteron,gear,"
 					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
 					"bb,ibb,fuellaps,map,airt,roadt\n"),
 			&writtenBytes, NULL)) {
@@ -359,16 +373,18 @@ int doCsv(int argc, const wchar_t *argv[])
 	struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
 	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
+	char leds[9];
 	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
 		struct CarModelData data;
 		data.carModel = sta->carModel;
 		populateCarModelData(&data, sta->maxRpm);
+		printRedline(leds, phy->rpms, data.shiftRpm, data.optRpm);
 		if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
-					"%d,%d,%d,%d,%d,%d,%d,"
+					"%d,%d,%d,%d,%d,%s,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
 					"%f,%u,%f,%d,%f,%f\n",
-					gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, phy->pitLimiterOn, phy->gear,
+					gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, leds, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
 					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp),
 				&writtenBytes, NULL)) {

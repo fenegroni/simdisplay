@@ -86,7 +86,7 @@ enum {
   RLLEDPIN_7 = 8,
   RLLEDPIN_8 = 9
 };
-
+/*
 static void digitalWriteFast(uint8_t pin, uint8_t x)
 {
   if (pin / 8) { // pin >= 8
@@ -95,7 +95,7 @@ static void digitalWriteFast(uint8_t pin, uint8_t x)
   else {
     PORTD ^= (-x ^ PORTD) & (1 << (pin % 8));
   }
-}
+}*/
 
 // We use the display's 4 bit interface during development.
 // If we have more pins available we can make it faster
@@ -164,24 +164,21 @@ static int rlledpins[] = {RLLEDPIN_1, RLLEDPIN_2, RLLEDPIN_3, RLLEDPIN_4, RLLEDP
 
 static void printRedline()
 {
-  int steprpm = (newPacket->shftrpm - newPacket->optrpm) / 7; // 7250 - 5600 = 1650; 1650 / 7 = 235
-  /*
-    0 = optrpm = 5600
-    1 = optrpm + steprpm = 5835
-    2 = optrpm + 2*steprpm = 6070
-    3 = optrpm + 3*steprpm = 6305
-    4 = optrpm + 4*steprpm = 6540
-    5 = optrpm + 5*steprpm = 6775
-    6 = optrpm + 6*steprpm = 7010
-    7 = optrpm + 7*steprpm = 7245
-  */
-  
-  for (int led = 0, ledrpm = newPacket->optrpm; led < 8; ++led, ledrpm += steprpm) {
+  if (newPacket->rpm >= newPacket->shftrpm) {
+    // set blink state: at the rate of 25Hz, we want 5 times on, 5 times off, while the rpm is in the upper range (blink = 1)
+    // When the rpm falls, we stop the blink, by just using the regular loop.
+    static int blink = 0;
+  }
+  uint16_t steprpm = (newPacket->shftrpm - newPacket->optrpm) / 8;
+  uint16_t ledrpm = newPacket->optrpm;
+  for (int led = 0; led < 8; ++led) {
     if (newPacket->rpm >= ledrpm) {
-      digitalWrite(rlledpins[led], HIGH);
+      digitalWrite(LED_BUILTIN, HIGH);
+      if (!digitalRead(rlledpins[led])) digitalWrite(rlledpins[led], HIGH);
     } else {
-      digitalWrite(rlledpins[led], LOW);
+      if (digitalRead(rlledpins[led])) digitalWrite(rlledpins[led], LOW);
     }
+    ledrpm += steprpm;
   }
 }
 
@@ -193,6 +190,7 @@ void setup()
 
   for (int led = 0; led < 8; ++led) {
     pinMode(rlledpins[led], OUTPUT);
+    //digitalWrite(rlledpins[led], LOW);
   }
   
   Serial.begin(9600);
@@ -213,10 +211,9 @@ void loop()
     }
     if (SDP_STATUS_LIVE != newPacket->status && SDP_STATUS_PAUSE != newPacket->status) {
       //printDisplayMask();
-      // FIXME clear rpm redline too!
+      printRedline();
       continue;
     }
-    // Insert code to light up RPM here
     printRedline();
     //printDisplayFields(); FIXME reinstate
     struct SimDisplayPacket *tmp = oldPacket;
