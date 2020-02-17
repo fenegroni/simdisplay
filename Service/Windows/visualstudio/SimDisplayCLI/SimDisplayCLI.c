@@ -33,6 +33,69 @@ enum mapAcpmf_action {
 	MAPACPMF_OPEN_EXISTING
 };
 
+static struct CarModelData {
+	int optRpm;
+	int shiftRpm;
+	float bbOffset;
+	wchar_t *carModel;
+} carModelDict[] = {
+	{ 0, 0, -70.0f,		L"amr_v12_vantage_gt3" },
+	{ 0, 0, -70.0f,		L"amr_v8_vantage_gt3" },
+	{ 0, 0, -140.0f,	L"audi_r8_lms" },
+	{ 0, 0, -140.0f,	L"audi_r8_lms_evo" },
+	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2016" },
+	{ 6000, 7250, -70.0f,	L"bentley_continental_gt3_2018" },
+	{ 0, 0, -150.0f,	L"bmw_m6_gt3" },
+	{ 0, 0, -70.0f,		L"jaguar_g3" },
+	{ 0, 0, -170.0f,	L"ferrari_488_gt3" },
+	{ 0, 0, -140.0f,	L"honda_nsx_gt3" },
+	{ 0, 0, -140.0f,	L"honda_nsx_gt3_evo" },
+	{ 0, 0, -140.0f,	L"lamborghini_gallardo_rex" },
+	{ 0, 0, -150.0f,	L"lamborghini_huracan_gt3" },
+	{ 0, 0, -140.0f,	L"lamborghini_huracan_gt3_evo" },
+	{ 0, 0, -140.0f,	L"lamborghini_huracan_st" },
+	{ 0, 0, -140.0f,	L"lexus_rc_f_gt3" },
+	{ 0, 0, -170.0f,	L"mclaren_650s_gt3" },
+	{ 0, 0, -170.0f,	L"mclaren_720s_gt3" },
+	{ 0, 0, -150.0f,	L"mercedes_amg_gt3" },
+	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2017" },
+	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2018" },
+	{ 0, 0, -60.0f,		L"porsche_991_gt3_r" },
+	{ 0, 0, -150.0f,	L"porsche_991ii_gt3_cup" },
+	{ 7100, 9000, -210.0f,	L"porsche_991ii_gt3_r" },
+};
+
+struct CarModelData * lookupCarModelData(wchar_t *carModel)
+{
+	for (int i = 0; i < (sizeof carModelDict / sizeof(struct CarModelData)); ++i) {
+		if (!wcscmp(carModelDict[i].carModel, carModel)) {
+			return &carModelDict[i];
+		}
+	}
+	return 0;
+}
+
+int populateCarModelData(struct CarModelData *retdata, int maxRpm)
+{
+	struct CarModelData *data = lookupCarModelData(retdata->carModel);
+	if (data) {
+		*retdata = *data;
+	} else {
+		retdata->carModel = L"default_car_data";
+		retdata->bbOffset = 0.0f;
+		retdata->optRpm = 0;
+		retdata->shiftRpm = 0;
+	}
+	// FIXME: once the LUT is fully populated this won't be necessary anymore
+	if (0 == retdata->optRpm) {
+		retdata->optRpm = maxRpm * 95 / 100;
+	}
+	if (0 == retdata->shiftRpm) {
+		retdata->shiftRpm = maxRpm * 75 / 100;
+	}
+	return data ? 1 : 0;
+}
+
 const wchar_t acpmf_physics[] = L"Local\\acpmf_physics";
 const wchar_t acpmf_graphics[] = L"Local\\acpmf_graphics";
 const wchar_t acpmf_static[] = L"Local\\acpmf_static";
@@ -89,45 +152,6 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	}
 
 	return err;
-}
-
-float lookupBBOffset(wchar_t *carModel)
-{
-	static struct DictElem {
-		float bbOffset;
-		wchar_t* carModel;
-	} dict[] = {
-		{ -70.0f,	L"amr_v12_vantage_gt3" },
-		{ -70.0f,	L"amr_v8_vantage_gt3" },
-		{ -140.0f,	L"audi_r8_lms" },
-		{ -140.0f,	L"audi_r8_lms_evo" },
-		{ -70.0f,	L"bentley_continental_gt3_2016" },
-		{ -70.0f,	L"bentley_continental_gt3_2018" },
-		{ -150.0f,	L"bmw_m6_gt3" },
-		{ -70.0f,	L"jaguar_g3" },
-		{ -170.0f,	L"ferrari_488_gt3" },
-		{ -140.0f,	L"honda_nsx_gt3" },
-		{ -140.0f,	L"honda_nsx_gt3_evo" },
-		{ -140.0f,	L"lamborghini_gallardo_rex" },
-		{ -150.0f,	L"lamborghini_huracan_gt3" },
-		{ -140.0f,	L"lamborghini_huracan_gt3_evo" },
-		{ -140.0f,	L"lamborghini_huracan_st" },
-		{ -140.0f,	L"lexus_rc_f_gt3" },
-		{ -170.0f,	L"mclaren_650s_gt3" },
-		{ -170.0f,	L"mclaren_720s_gt3" },
-		{ -150.0f,	L"mercedes_amg_gt3" },
-		{ -150.0f,	L"nissan_gt_r_gt3_2017" },
-		{ -150.0f,	L"nissan_gt_r_gt3_2018" },
-		{ -60.0f,	L"porsche_991_gt3_r" },
-		{ -150.0f,	L"porsche_991ii_gt3_cup" },
-		{ -210.0f,	L"porsche_991ii_gt3_r" },		
-	};
-	for (int i = 0; i < (sizeof(dict) / sizeof (struct DictElem)); ++i) {
-		if (!wcscmp(dict[i].carModel, carModel)) {
-			return dict[i].bbOffset;
-		}
-	}
-	return 0.0f;
 }
 
 uint16_t bbFromBrakeBias(float brakeBias, float offset)
@@ -189,24 +213,26 @@ int doSend(int argc, const wchar_t *argv[])
 	}
 
 	struct SimDisplayPacket packet;
-	float bbOffset = 0.0f;
+	struct CarModelData cardata = { 0 };
 	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
 		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
 		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
-			bbOffset = lookupBBOffset(sta->carModel);
+			cardata.carModel = sta->carModel;
+			populateCarModelData(&cardata, sta->maxRpm);
 		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
-		packet.maxrpm = sta->maxRpm;
-		packet.pitlimiter = phy->pitLimiterOn;
+		packet.optrpm = cardata.optRpm;
+		packet.shftrpm = cardata.shiftRpm;
+		packet.pitlim = phy->pitLimiterOn;
 		packet.gear = phy->gear; // 0 = Reverse, 1 = Neutra, 2 = 1st, 3 = 2nd, ..., 7 = 6th.
 		packet.tc = gra->TC;
 		packet.tcc = gra->TCCut;
-		packet.tcaction = (uint8_t)phy->tc;
+		packet.tcact = (uint8_t)phy->tc;
 		packet.abs = gra->ABS;
-		packet.absaction = (uint8_t)phy->abs;
-		packet.bb = bbFromBrakeBias(phy->brakeBias, bbOffset);
+		packet.absact = (uint8_t)phy->abs;
+		packet.bb = bbFromBrakeBias(phy->brakeBias, cardata.bbOffset);
 		packet.remlaps = (uint8_t)gra->fuelEstimatedLaps; // Only full laps are useful to the driver.
 		packet.map = gra->EngineMap + 1;
 		packet.airt = (uint8_t)phy->airTemp; // match ACC's UI: floor instead of round.
@@ -276,6 +302,25 @@ int doSave(int argc, const wchar_t *argv[])
 	return 1;
 }
 
+static void printRedline(char leds[9], uint16_t rpm, uint16_t shiftrpm, uint16_t optrpm)
+{
+	if (rpm > shiftrpm) {
+		for (int led = 0; led < 8; ++led) {
+			leds[led] = 'b';
+		}
+	} else {
+		int steprpm = (shiftrpm - optrpm) / 8;
+		for (int led = 0, ledrpm = optrpm; led < 8; ++led, ledrpm += steprpm) {
+			if (rpm > ledrpm) {
+				leds[led] = '1';
+			} else {
+				leds[led] = '0';
+			}
+		}
+	}
+	leds[8] = '\0';
+}
+
 int doCsv(int argc, const wchar_t *argv[])
 {
 	HANDLE input, output;
@@ -318,8 +363,8 @@ int doCsv(int argc, const wchar_t *argv[])
 	DWORD writtenBytes;
 	if (!WriteFile(output, csvRecord,
 			snprintf(csvRecord, maxCsvRecord,
-					"status,rpm,maxrpm,pitlimiteron,gear,"
-					"tc,tccut,tcaction,i_tcaction,abs,absaction,i_absaction,"
+					"status,rpm,maxrpm,optrpm,shiftrpm,leds,pitlimiteron,gear,"
+					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
 					"bb,ibb,fuellaps,map,airt,roadt,car_model\n"),
 			&writtenBytes, NULL)) {
 		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
@@ -332,15 +377,20 @@ int doCsv(int argc, const wchar_t *argv[])
 	struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
 	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 	DWORD readBytes;
+	char leds[9];
 	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
+		struct CarModelData data;
+		data.carModel = sta->carModel;
+		populateCarModelData(&data, sta->maxRpm);
+		printRedline(leds, phy->rpms, data.shiftRpm, data.optRpm);
 		if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
-					"%d,%d,%d,%d,%d,"
+					"%d,%d,%d,%d,%d,%s,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
 					"%f,%u,%f,%d,%f,%f,%S\n",
-					gra->status, phy->rpms, sta->maxRpm, phy->pitLimiterOn, phy->gear,
+					gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, leds, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, lookupBBOffset(sta->carModel)), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp, sta->carModel),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp, sta->carModel),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
