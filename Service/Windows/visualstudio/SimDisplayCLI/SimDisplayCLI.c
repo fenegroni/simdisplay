@@ -223,7 +223,6 @@ int doSend(int argc, const wchar_t *argv[])
 		}
 		packet.status = prevStatus = gra->status;
 		packet.rpm = phy->rpms;
-		packet.maxrpm = sta->maxRpm;
 		packet.optrpm = cardata.optRpm;
 		packet.shftrpm = cardata.shiftRpm;
 		packet.pitlim = phy->pitLimiterOn;
@@ -305,13 +304,18 @@ int doSave(int argc, const wchar_t *argv[])
 
 static void printRedline(char leds[9], uint16_t rpm, uint16_t shiftrpm, uint16_t optrpm)
 {
-	int steprpm = (shiftrpm - optrpm) / 7; // 7250 - 5600 = 1650; 1650 / 7 = 235
-
-	for (int led = 0, ledrpm = optrpm; led < 8; ++led, ledrpm += steprpm) {
-		if (rpm >= ledrpm) {
-			leds[led] = '1';
-		} else {
-			leds[led] = '0';
+	if (rpm > shiftrpm) {
+		for (int led = 0; led < 8; ++led) {
+			leds[led] = 'b';
+		}
+	} else {
+		int steprpm = (shiftrpm - optrpm) / 8;
+		for (int led = 0, ledrpm = optrpm; led < 8; ++led, ledrpm += steprpm) {
+			if (rpm > ledrpm) {
+				leds[led] = '1';
+			} else {
+				leds[led] = '0';
+			}
 		}
 	}
 	leds[8] = '\0';

@@ -164,21 +164,32 @@ static int rlledpins[] = {RLLEDPIN_1, RLLEDPIN_2, RLLEDPIN_3, RLLEDPIN_4, RLLEDP
 
 static void printRedline()
 {
-  if (newPacket->rpm >= newPacket->shftrpm) {
-    // set blink state: at the rate of 25Hz, we want 5 times on, 5 times off, while the rpm is in the upper range (blink = 1)
-    // When the rpm falls, we stop the blink, by just using the regular loop.
-    static int blink = 0;
-  }
-  uint16_t steprpm = (newPacket->shftrpm - newPacket->optrpm) / 8;
-  uint16_t ledrpm = newPacket->optrpm;
-  for (int led = 0; led < 8; ++led) {
-    if (newPacket->rpm >= ledrpm) {
-      digitalWrite(LED_BUILTIN, HIGH);
-      if (!digitalRead(rlledpins[led])) digitalWrite(rlledpins[led], HIGH);
-    } else {
-      if (digitalRead(rlledpins[led])) digitalWrite(rlledpins[led], LOW);
+  static unsigned long bktm = 0;
+  static int bksta = LOW;
+  static unsigned long bkint = 160;
+  
+  if (newPacket->rpm > newPacket->shftrpm) {
+    if (bktm > 0 && millis() - bktm < bkint) {
+        return;
     }
-    ledrpm += steprpm;
+    bksta = !bksta; // HIGH and LOW are just 1 and 0!
+    for (int led = 0; led < 8; ++led) {
+      digitalWrite(rlledpins[led], bksta);
+    }
+    bktm = millis();
+  } else {
+    bktm = 0;
+    bksta = LOW;
+    uint16_t steprpm = (newPacket->shftrpm - newPacket->optrpm) / 8;
+    uint16_t ledrpm = newPacket->optrpm;
+    for (int led = 0; led < 8; ++led) {
+      if (newPacket->rpm > ledrpm) {
+        if (!digitalRead(rlledpins[led])) digitalWrite(rlledpins[led], HIGH);
+      } else {
+        if (digitalRead(rlledpins[led])) digitalWrite(rlledpins[led], LOW);
+      }
+      ledrpm += steprpm;
+    }
   }
 }
 
