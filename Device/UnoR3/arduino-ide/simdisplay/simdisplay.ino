@@ -18,45 +18,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/*
-FIXME: in feature/show-rpm-redline the pins are configured differently.
-
-LED Pins 2 - 3 - 4 - 5 - 6 - 7 - 8 - 9
-These represent an RPM redline, whereby LEDs are either fully on or fully off.
-The first LED is lit after an optimal upshift.
-The LEDs are lit up in sequence, with equal percentage, to show the RPM
-value approaching the Optimal shift point.
-When the Optimal shift point is reached, the last LED is lit.
-Past that, the LEDs will blink to indicate we are close to the maxrpm.
-
-The pin layout will be merged once work in this branch is complete.
-We will use 6 pins: 3 for the redline rpm LEDs
-and 3 for the gear indicator segment LEDs.
-If necessary there are analog input pins that can be configured
-as digital output to be used for damage, TC active and ABS active LEDs.
-
-*/
-
-/*
-The LiquidCrystal library works with all LCD displays that are compatible with the
-Hitachi HD44780 driver. There are many of them out there, and you
-can usually tell them by the 16-pin interface.
-
-The circuit:
-LCD RS pin to digital pin 7
-LCD Enable pin to digital pin 8
-LCD D4 pin to digital pin 9
-LCD D5 pin to digital pin 10
-LCD D6 pin to digital pin 11
-LCD D7 pin to digital pin 12
-LCD R/W pin to ground
-LCD VSS pin to ground
-LCD VCC pin to 5V
-10K resistor:
-ends to +5V and ground
-wiper to LCD VO pin (pin 3)
-*/
-
 #include <inttypes.h>
 
 #include <LiquidCrystal.h>
@@ -77,30 +38,45 @@ wiper to LCD VO pin (pin 3)
 #define DISPLAY_ROADT_COLROW    13, 1
 
 enum {
-  RLLEDPIN_1 = 2,
-  RLLEDPIN_2 = 3,
-  RLLEDPIN_3 = 4,
-  RLLEDPIN_4 = 5,
-  RLLEDPIN_5 = 6,
-  RLLEDPIN_6 = 7,
-  RLLEDPIN_7 = 8,
-  RLLEDPIN_8 = 9
+  RL_LED1_PIN = 2,
+  RL_LED2_PIN = 3,
+  RL_LED3_PIN = 4,
+  RL_LED4_PIN = 5,
+  RL_LED5_PIN = 6,
+  RL_LED6_PIN = 7,
+  RL_LED7_PIN = 8,
+  RL_LED8_PIN = 9
 };
-/*
-static void digitalWriteFast(uint8_t pin, uint8_t x)
-{
-  if (pin / 8) { // pin >= 8
-    PORTB ^= (-x ^ PORTB) & (1 << (pin % 8));
-  }
-  else {
-    PORTD ^= (-x ^ PORTD) & (1 << (pin % 8));
-  }
-}*/
 
-// We use the display's 4 bit interface during development.
-// If we have more pins available we can make it faster
-// by switching to the 8 bit interface.
-//LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // TODO: make it clearer how we are initialising the library.
+enum {
+  LCD_RS_PIN = 10,
+  LCD_ENABLE_PIN = 11,
+  LCD_D4_PIN = 14, // A0
+  LCD_D5_PIN = 15, // A1
+  LCD_D6_PIN = 16, // A2
+  LCD_D7_PIN = 17  // A3
+};
+
+/*
+The LiquidCrystal library works with all LCD displays that are compatible with the
+Hitachi HD44780 driver. There are many of them out there, and you
+can usually tell them by the 16-pin interface.
+
+The circuit:
+LCD RS pin to digital pin 10
+LCD Enable pin to digital pin 11
+LCD D4 pin to digital pin 14 (A0)
+LCD D5 pin to digital pin 15 (A1)
+LCD D6 pin to digital pin 16 (A2)
+LCD D7 pin to digital pin 17 (A3)
+LCD R/W pin to ground
+LCD VSS pin to ground
+LCD VDD pin to 5V
+10K resistor:
+ends to +5V and ground
+wiper to LCD VO pin (pin 3)
+*/
+LiquidCrystal lcd(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
 
 static struct SimDisplayPacket packet[2];
 static struct SimDisplayPacket *newPacket = &packet[0];
@@ -108,8 +84,8 @@ static struct SimDisplayPacket *oldPacket = &packet[1];
 
 static void lcdPrint(char *str, int col, int row)
 {
-  //lcd.setCursor(col, row);
-  //lcd.print(str);
+  lcd.setCursor(col, row);
+  lcd.print(str);
 }
 
 static void printDisplayMask()
@@ -160,7 +136,7 @@ static void printDisplayFields()
   printDisplayField(newPacket->roadt, oldPacket->roadt, "--", "%2d", DISPLAY_ROADT_COLROW);
 }
 
-static int rlledpins[] = {RLLEDPIN_1, RLLEDPIN_2, RLLEDPIN_3, RLLEDPIN_4, RLLEDPIN_5, RLLEDPIN_6, RLLEDPIN_7, RLLEDPIN_8 };
+static int rlledpins[] = {RL_LED1_PIN, RL_LED2_PIN, RL_LED3_PIN, RL_LED4_PIN, RL_LED5_PIN, RL_LED6_PIN, RL_LED7_PIN, RL_LED8_PIN };
 
 static void printRedline()
 {
@@ -196,12 +172,11 @@ static void printRedline()
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
-  //lcd.begin(16, 2); FIXME reinstate
-  //printDisplayMask(); FIXME reinstate
+  lcd.begin(16, 2);
+  printDisplayMask();
 
   for (int led = 0; led < 8; ++led) {
     pinMode(rlledpins[led], OUTPUT);
-    //digitalWrite(rlledpins[led], LOW);
   }
   
   Serial.begin(9600);
@@ -216,17 +191,17 @@ void loop()
       // something went wrong, we reset ourselves.
       Serial.end();
       delay(2000);
-      //printDisplayMask(); FIXME reinstate
+      printDisplayMask();
       Serial.begin(9600);
       break;
     }
     if (SDP_STATUS_LIVE != newPacket->status && SDP_STATUS_PAUSE != newPacket->status) {
-      //printDisplayMask();
+      printDisplayMask();
       printRedline();
       continue;
     }
     printRedline();
-    //printDisplayFields(); FIXME reinstate
+    printDisplayFields();
     struct SimDisplayPacket *tmp = oldPacket;
     oldPacket = newPacket;
     newPacket = tmp;
