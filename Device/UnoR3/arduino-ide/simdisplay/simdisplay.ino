@@ -133,7 +133,7 @@ static void printDisplayFields()
 void writeRedline(uint8_t pattern)
 {
   digitalWrite(RL_LATCH_PIN, LOW);
-  shiftOut(RL_DATA_PIN, RL_CLOCK_PIN, LSBFIRST, pattern);
+  shiftOut(RL_DATA_PIN, RL_CLOCK_PIN, MSBFIRST, pattern);
   digitalWrite(RL_LATCH_PIN, HIGH);
 }
 
@@ -166,13 +166,13 @@ static void printRedline()
   if (newPacket->rpm > newPacket->optrpm) {
     static const int RLSTAGES = 8;
     static uint8_t patterns[RLSTAGES] = {
-      B00000001,
-      B00000011,
-      B00000111,
-      B00001111,
-      B00011111,
-      B00111111,
-      B01111111,
+      B10000000,
+      B11000000,
+      B11100000,
+      B11110000,
+      B11111000,
+      B11111100,
+      B11111110,
       B11111111,
     };
   
