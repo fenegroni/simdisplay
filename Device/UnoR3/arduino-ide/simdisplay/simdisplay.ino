@@ -28,12 +28,10 @@
 
 // Redline, Gear and Damage use a 74HC595N IC to drive groups of LEDs.
 // The three groups are update sequentially, so they can all share
-// the same CLOCK, DATA, CLEAR and ENABLE pins, but each one has its own LATCH pin.
+// the same CLOCK and DATA pins, but each one has its own LATCH pin.
 // We do not need complicate the code to write to all of them in parallel
 // because Redline changes very frequently, while Gear and especially Damage
 // only change occasionally.
-// We use the CLEAR pin to fast clear them all together.
-// We use the ENABLE pin so we can disable them all together.
 
 // Redline pinout.
 enum RedlinePins {
@@ -54,12 +52,6 @@ enum DamagePins {
 	DMG_LATCH_PIN = 4,
 	DMG_CLOCK_PIN = 5,
 	DMG_DATA_PIN = 6,
-};
-
-// Enable and clear all leds.
-enum AllLedPins {
-	ALL_CLEAR_PIN = 8,
-	ALL_ENABLE_PIN = 9,
 };
 
 // LCD display pinout.
@@ -119,7 +111,7 @@ static void printLcdField(int newval, int oldval, const char *zerostr, const cha
 
 static void printLcdFieldBB(int newval, int oldval, int col, int row)
 {
-static char strbuffer[17];
+	static char strbuffer[17];
 
 	if (newval != oldval) {
 		if (0 == newval) {
@@ -158,26 +150,6 @@ static void writeRedline(uint8_t pattern)
 static void clearRedline(void)
 {
 	writeRedline(B00000000);
-}
-
-// clearAllLeds clears all led groups, useful at reset.
-static void clearAllLeds(void)
-{
-	digitalWrite(RL_LATCH_PIN, LOW);
-	digitalWrite(GEAR_LATCH_PIN, LOW);
-	digitalWrite(DMG_LATCH_PIN, LOW);
-	digitalWrite(ALL_CLEAR_PIN, LOW);
-	digitalWrite(RL_LATCH_PIN, HIGH);
-	digitalWrite(GEAR_LATCH_PIN, HIGH);
-	digitalWrite(DMG_LATCH_PIN, HIGH);
-	digitalWrite(ALL_CLEAR_PIN, HIGH);
-}
-
-// enableAllLeds enables or disables all led groups, useful on pause.
-// parameter enable can be 1 to enable or 0 to disable.
-static void enableAllLeds(int enable)
-{
-	digitalWrite(ALL_ENABLE_PIN, enable ? LOW : HIGH);
 }
 
 static void printRedline(void)
@@ -221,7 +193,17 @@ static void printRedline(void)
 
 static void writeGear(uint8_t pattern)
 {
-	writeLeds(GEAR_LATCH_PIN, GEAR_DATA_PIN, GEAR_CLOCK_PIN, pattern);
+	static uint8_t oldPattern = B00000000;
+	
+	if (pattern != oldPattern) {
+		writeLeds(GEAR_LATCH_PIN, GEAR_DATA_PIN, GEAR_CLOCK_PIN, pattern);
+		oldPattern = pattern;
+	}
+}
+
+static void clearGear()
+{
+	writeGear(B00000000);
 }
 
 static void printGear(void)
@@ -242,9 +224,7 @@ static void printGear(void)
 		GEAR_R, GEAR_N, GEAR_1, GEAR_2, GEAR_3, GEAR_4, GEAR_5, GEAR_6
 	};
 
-	if (newPacket->gear != oldPacket->gear) {
-		writeGear(gearPatterns[newPacket->gear]);
-	}
+	writeGear(gearPatterns[newPacket->gear]);
 }
 
 void setup()
@@ -265,11 +245,8 @@ void setup()
 	pinMode(DMG_CLOCK_PIN, OUTPUT);
 	pinMode(DMG_DATA_PIN, OUTPUT);
 	
-	pinMode(ALL_CLEAR_PIN, OUTPUT);
-	pinMode(ALL_ENABLE_PIN, OUTPUT);
-	
-	clearAllLeds();
-	enableAllLeds(1);
+	clearRedline();
+	clearGear();
 
 	Serial.begin(9600);
 }
@@ -285,21 +262,21 @@ void loop()
 			Serial.end();
 			delay(2000);
 			printLcdMask();
-			clearAllLeds();
-			enableAllLeds(true);
+			clearRedline();
+			clearGear();
 			Serial.begin(9600);
 			break;
 		}
-	
+
 		printRedline();
 		printGear();
 		printLcdFields();
+		
 		struct SimDisplayPacket *tmp = oldPacket;
 		oldPacket = newPacket;
 		newPacket = tmp;
-	
+
 		time = micros() - time;
-	
 		if (time > 20000) {
 			digitalWrite(LED_BUILTIN, HIGH);
 		}
