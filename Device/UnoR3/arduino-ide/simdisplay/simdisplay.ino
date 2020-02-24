@@ -144,7 +144,12 @@ static void writeLeds(uint8_t latchpin, uint8_t datapin, uint8_t clockpin, uint8
 
 static void writeRedline(uint8_t pattern)
 {
-	writeLeds(RL_LATCH_PIN, RL_DATA_PIN, RL_CLOCK_PIN, pattern);
+	static uint8_t oldPattern = B00000000;
+	
+	if (pattern != oldPattern) {
+		writeLeds(RL_LATCH_PIN, RL_DATA_PIN, RL_CLOCK_PIN, pattern);
+		oldPattern = pattern;
+	}
 }
 
 static void clearRedline(void)
