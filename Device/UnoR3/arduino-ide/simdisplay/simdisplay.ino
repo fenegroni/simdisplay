@@ -144,12 +144,7 @@ static void writeLeds(uint8_t latchpin, uint8_t datapin, uint8_t clockpin, uint8
 
 static void writeRedline(uint8_t pattern)
 {
-	static uint8_t oldPattern = B00000000;
-	
-	if (pattern != oldPattern) {
-		writeLeds(RL_LATCH_PIN, RL_DATA_PIN, RL_CLOCK_PIN, pattern);
-		oldPattern = pattern;
-	}
+	writeLeds(RL_LATCH_PIN, RL_DATA_PIN, RL_CLOCK_PIN, pattern);
 }
 
 static void clearRedline(void)
@@ -160,7 +155,7 @@ static void clearRedline(void)
 static void printRedline(void)
 {
 	static unsigned long bktm = 0;
-	static uint8_t bksta = B00000000;
+	static uint8_t bksta = B11111111;
 	static const unsigned long bkint = 100;
 
 	if (newPacket->rpm > newPacket->shftrpm) {
@@ -173,7 +168,7 @@ static void printRedline(void)
 	}
 	
 	bktm = 0;
-	bksta = B00000000;
+	bksta = B11111111;
 	
 	if (newPacket->rpm > newPacket->optrpm) {
 		static const int RLSTAGES = 8;
@@ -198,12 +193,7 @@ static void printRedline(void)
 
 static void writeGear(uint8_t pattern)
 {
-	static uint8_t oldPattern = B00000000;
-	
-	if (pattern != oldPattern) {
-		writeLeds(GEAR_LATCH_PIN, GEAR_DATA_PIN, GEAR_CLOCK_PIN, pattern);
-		oldPattern = pattern;
-	}
+	writeLeds(GEAR_LATCH_PIN, GEAR_DATA_PIN, GEAR_CLOCK_PIN, pattern);
 }
 
 static void clearGear()
@@ -213,18 +203,18 @@ static void clearGear()
 
 static void printGear(void)
 {
+		        //GFEDCBA.
 	enum Patterns {
-		GEAR_R = B00000001,
-		GEAR_N = B00000010,
-		GEAR_1 = B00000100,
-		GEAR_2 = B00001000,
-		GEAR_3 = B00010000,
-		GEAR_4 = B00100000,
-		GEAR_5 = B01000000,
-		GEAR_6 = B10000000,
-		GEAR_7 = B11111111,
+		GEAR_R = B10100000,
+		GEAR_N = B00000001,
+		GEAR_1 = B00001100,
+		GEAR_2 = B10110110,
+		GEAR_3 = B10011110,
+		GEAR_4 = B11001100,
+		GEAR_5 = B11011010,
+		GEAR_6 = B11111000,
 	};
-
+	
 	static uint8_t gearPatterns[] = {
 		GEAR_R, GEAR_N, GEAR_1, GEAR_2, GEAR_3, GEAR_4, GEAR_5, GEAR_6
 	};
@@ -236,7 +226,6 @@ void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);
 	lcd.begin(16, 2);
-	printLcdMask();
 	
 	pinMode(RL_LATCH_PIN, OUTPUT);
 	pinMode(RL_CLOCK_PIN, OUTPUT);
@@ -250,6 +239,7 @@ void setup()
 	pinMode(DMG_CLOCK_PIN, OUTPUT);
 	pinMode(DMG_DATA_PIN, OUTPUT);
 	
+	printLcdMask();
 	clearRedline();
 	clearGear();
 
@@ -271,6 +261,16 @@ void loop()
 			clearGear();
 			Serial.begin(9600);
 			break;
+		}
+
+		if (SDP_STATUS_PAUSE == newPacket->status) {
+			continue;
+		}
+		if (SDP_STATUS_OFF == newPacket->status) {
+			printLcdMask();
+			clearRedline();
+			clearGear();
+			continue;
 		}
 
 		printRedline();
