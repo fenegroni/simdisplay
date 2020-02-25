@@ -24,7 +24,7 @@ struct SimDisplayPacket {
 	uint8_t status;
 	uint16_t rpm;
 	uint16_t optrpm;
-  uint16_t shftrpm;
+	uint16_t shftrpm;
 	uint8_t pitlim;
 	uint8_t gear;
 	uint8_t tc;
