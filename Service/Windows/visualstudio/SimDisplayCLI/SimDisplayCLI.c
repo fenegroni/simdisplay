@@ -88,10 +88,10 @@ int populateCarModelData(struct CarModelData *retdata, int maxRpm)
 	}
 	// FIXME: once the LUT is fully populated this won't be necessary anymore
 	if (0 == retdata->optRpm) {
-		retdata->optRpm = maxRpm * 95 / 100;
+		retdata->optRpm = maxRpm * 85 / 100;
 	}
 	if (0 == retdata->shiftRpm) {
-		retdata->shiftRpm = maxRpm * 75 / 100;
+		retdata->shiftRpm = maxRpm * 95 / 100;
 	}
 	return data ? 1 : 0;
 }
@@ -390,7 +390,7 @@ int doCsv(int argc, const wchar_t *argv[])
 					"%f,%u,%f,%d,%f,%f,%S\n",
 					gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, leds, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap, phy->airTemp, phy->roadTemp, sta->carModel),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap+1, phy->airTemp, phy->roadTemp, sta->carModel),
 				&writtenBytes, NULL)) {
 			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
 			return 1;
