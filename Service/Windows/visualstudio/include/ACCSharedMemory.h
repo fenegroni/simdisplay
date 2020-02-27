@@ -121,6 +121,10 @@ struct ACCPhysics
 	float tyreTemp[4];
 	float waterTemp;
 	float brakePressure[4];
+	int frontBrakeCompound;
+	int rearBrakeCompound;
+	float padLife[4];
+	float discLife[4];
 };
 
 struct ACCGraphics
