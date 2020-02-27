@@ -19,6 +19,7 @@
 */
 
 #include <inttypes.h>
+#include <string.h>
 
 #include <LiquidCrystal.h>
 
@@ -82,6 +83,12 @@ LiquidCrystal lcd(LCD_RS_PIN, LCD_ENABLE_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN
 static struct SimDisplayPacket packet[2];
 static struct SimDisplayPacket *newPacket = &packet[0];
 static struct SimDisplayPacket *oldPacket = &packet[1];
+static const int packetsize = sizeof(struct SimDisplayPacket);
+
+static void clearOldPacket(void)
+{
+	memset(oldPacket, 0, packetsize);
+}
 
 static void printLcd(char *str, int col, int row)
 {
@@ -248,7 +255,6 @@ void setup()
 
 void loop()
 {
-	static const int packetsize = sizeof(struct SimDisplayPacket);
 	while (Serial.available() >= packetsize) {
 		unsigned long time = micros();
 
@@ -256,6 +262,7 @@ void loop()
 			// something went wrong, we reset ourselves.
 			Serial.end();
 			delay(2000);
+			clearOldPacket();
 			printLcdMask();
 			clearRedline();
 			clearGear();
@@ -267,6 +274,7 @@ void loop()
 			continue;
 		}
 		if (SDP_STATUS_OFF == newPacket->status) {
+			clearOldPacket();
 			printLcdMask();
 			clearRedline();
 			clearGear();
