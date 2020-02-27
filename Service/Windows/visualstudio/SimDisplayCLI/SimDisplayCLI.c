@@ -44,7 +44,7 @@ static struct CarModelData {
 	{ 0, 0, -140.0f,	L"audi_r8_lms" },
 	{ 0, 0, -140.0f,	L"audi_r8_lms_evo" },
 	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2016" },
-	{ 6000, 7250, -70.0f,	L"bentley_continental_gt3_2018" },
+	{ 6300, 7100, -70.0f,	L"bentley_continental_gt3_2018" },
 	{ 0, 0, -150.0f,	L"bmw_m6_gt3" },
 	{ 0, 0, -70.0f,		L"jaguar_g3" },
 	{ 0, 0, -170.0f,	L"ferrari_488_gt3" },
