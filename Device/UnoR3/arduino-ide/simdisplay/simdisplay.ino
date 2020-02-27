@@ -229,6 +229,14 @@ static void printGear(void)
 	writeGear(gearPatterns[newPacket->gear]);
 }
 
+static void clearAllOutput(void)
+{
+	clearOldPacket();
+	printLcdMask();
+	clearRedline();
+	clearGear();
+}
+
 void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);
@@ -246,9 +254,7 @@ void setup()
 	pinMode(DMG_CLOCK_PIN, OUTPUT);
 	pinMode(DMG_DATA_PIN, OUTPUT);
 	
-	printLcdMask();
-	clearRedline();
-	clearGear();
+	clearAllOutput();
 
 	Serial.begin(9600);
 }
@@ -262,22 +268,16 @@ void loop()
 			// something went wrong, we reset ourselves.
 			Serial.end();
 			delay(2000);
-			clearOldPacket();
-			printLcdMask();
-			clearRedline();
-			clearGear();
+			clearAllOutput();
 			Serial.begin(9600);
 			break;
 		}
 
-		if (SDP_STATUS_PAUSE == newPacket->status) {
-			continue;
-		}
-		if (SDP_STATUS_OFF == newPacket->status) {
-			clearOldPacket();
-			printLcdMask();
-			clearRedline();
-			clearGear();
+		switch (newPacket->status) {
+		case SDP_STATUS_REPLAY:
+		case SDP_STATUS_OFF:
+			clearAllOutput();
+		case SDP_STATUS_PAUSE:
 			continue;
 		}
 
