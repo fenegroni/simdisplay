@@ -55,7 +55,7 @@ More detailed instructions and information can be found in the README file in th
 
 and upload the firmware to your device
 
-Under `Device/UnoR3/arduino-ide/SimDisplay` you will find the Arduino IDE project file `SimDisplay.ino`.
+Under `Device/UnoR3/ArduinoIDE/SimDisplay` you will find the Arduino IDE project file `SimDisplay.ino`.
 
 This is the embedded software that will run on the Arduino Uno R3 board microcontroller:
 it receives telemetry data from the Windows host via the USB-to-serial interface
