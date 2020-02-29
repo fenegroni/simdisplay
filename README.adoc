@@ -22,11 +22,37 @@ showing telemetry information from the racing simulator Assetto Corsa Competizio
 A Windows process reads data from ACC's shared memory telemetry and streams it to a supported device
 running the embedded software which is also part of this project.
 
-== Device and Service
+== Getting Started
 
-After cloning or downloading this repository, you will find two folders: `Device` and `Service`.
+=== Prerequisites
 
-=== `Device`
+At a minimum, you will need:
+* Windows 10;
+* Visual Studio 2019 Community Edition;
+* Arduino IDE 1.8;
+* this code repository (download or clone);
+* the components for the device you are going to build.
+
+At the time of writing this README document, the only supported device is the Arduino Uno R3.
+
+I have made a Fritzing diagram, exported as a breadboard wiring image.
+I have also exported a BOM (bill of materials) as your shopping list for this project.
+
+These are found in the `Device/UnoR3` folder.
+
+The README file in that folder has more detail.
+
+=== Build the Service
+
+Open the solution file `simdisplay.sln` in folder `Service/Windows/visualstudio` using Visual Studio 2019.
+
+Build the solution which will create a Windows 64-bit Console application called SimDisplayCLI.
+
+More detailed instructions and information can be found in the README file in the `Service` folder.
+
+=== Build the device
+
+and upload the firmware to your device
 
 Under `Device/UnoR3/arduino-ide/simdisplay` you will find the Arduino IDE project file `simdisplay.ino`.
 
@@ -42,11 +68,3 @@ You can compile and upload the project to your Arduino board from the avialble W
 installing the IDE on your computer if you so wish.
 
 For more information, refer to the README.adoc file in the folder `Device/UnoR3/arduino-ide`.
-
-=== `Service`
-
-Under `Service/Windows/visualstudio` you will find the Visual Studio 2019 solution file `simdisplay.sln`.
-
-This is the Windows 64-bit Console application that will run on the Windows host
-where ACC is installed and runs from.
-
