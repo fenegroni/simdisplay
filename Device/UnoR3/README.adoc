@@ -12,7 +12,7 @@ In this folder you will find all you need to build and run Simdisplay on this de
 |ArduinoIDE |The Arduino IDE project is in there.
 |SimDisplay_UnoR3.fzz |The breadboard wiring diagram; you will need Fritzing 0.9 to edit this. 
 |SimDisplay_UnoR3_BOM.html |The Bill Of Materials (BOM) exported from Fritzing.
-|SimDisplay_UnoR3_Breadboard.png |The breadboard wiring diagram, exported as a picture.
+|SimDisplay_UnoR3_breadboard.png |The breadboard wiring diagram, exported as a picture.
 |===
 
 == Shop for and Build your device
@@ -23,6 +23,6 @@ lists all the items you need to build the Simdisplay Uno R3 dashboard.
 Once you have all the necessary parts, you can start assembling the parts on a breadboard
 according to the link:SimDisplay_UnoR3.fzz[Fritzing breadboard wiring diagram]:
 
-image::SimDisplay_UnoR3_Breadboard.png[breadboard wiring diagram]
+image::SimDisplay_UnoR3_breadboard.png[breadboard wiring diagram]
 
 == Build and Upload the Firmware
