@@ -1,10 +1,8 @@
 = `Simdisplay/Device`
 
 In this folder you will find a folder for each supported device.
-All the information for that device is in that folder.
 
-== Files and Folders
-
+.Files and Folders
 |===
 |File or Folder |Description
 |README.adoc |This very document.
