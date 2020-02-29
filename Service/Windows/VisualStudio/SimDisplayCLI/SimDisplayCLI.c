@@ -1,5 +1,5 @@
 /*
-simdisplay - A simracing dashboard created using Arduino to show shared memory
+SimDisplay - A simracing dashboard created using Arduino to show shared memory
              telemetry from Assetto Corsa Competizione.
 
 Copyright (C) 2020  Filippo Erik Negroni
@@ -17,6 +17,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+#define SIMDISPLAYCLI_VERSION "8.1"
 
 #include <windows.h>
 #include <string.h>
@@ -62,7 +64,7 @@ static struct CarModelData {
 	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2018" },
 	{ 0, 0, -60.0f,		L"porsche_991_gt3_r" },
 	{ 0, 0, -150.0f,	L"porsche_991ii_gt3_cup" },
-	{ 7100, 9000, -210.0f,	L"porsche_991ii_gt3_r" },
+	{ 0, 0, -210.0f,	L"porsche_991ii_gt3_r" },
 };
 
 struct CarModelData * lookupCarModelData(wchar_t *carModel)
@@ -110,7 +112,6 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 		while (!(phyMap = OpenFileMapping(FILE_MAP_READ, FALSE, acpmf_physics))) {
 			fprintf(stderr, "Waiting: open file mapping for ACCPhysics.\n");
 			Sleep(1000);
-			// TODO: don't try forever: exit after 5 minutes?
 		}
 		graMap = OpenFileMapping(FILE_MAP_READ, FALSE, acpmf_graphics); 
 		staMap = OpenFileMapping(FILE_MAP_READ, FALSE, acpmf_static);
@@ -466,23 +467,59 @@ int doReplay(int argc, const wchar_t *argv[])
 	return 0;
 }
 
+int doVersion(void)
+{
+	puts(
+"SimDisplayCLI version " SIMDISPLAYCLI_VERSION "\n"
+"SimDisplay protocol version " SIMDISPLAYPROTOCOL_VERSION "\n"
+"ACCSharedMemory version " ACCSHAREDMEMORY_VERSION "\n"
+	);
+	return 0;
+}
+
+int doLicense(void)
+{
+	puts(
+"SimDisplay - A simracing dashboard created using Arduino to show shared memory\n"
+"	      telemetry from Assetto Corsa Competizione.\n"
+"\n"
+"Copyright(C) 2020  Filippo Erik Negroni\n"
+"\n"
+"This program is free software : you can redistribute it and /or modify\n"
+"it under the terms of the GNU General Public License as published by\n"
+"the Free Software Foundation, either version 3 of the License, or\n"
+"(at your option) any later version.\n"
+"\n"
+"This program is distributed in the hope that it will be useful,\n"
+"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the\n"
+"GNU General Public License for more details.\n"
+"\n"
+"You should have received a copy of the GNU General Public License\n"
+"along with this program.If not, see <https://www.gnu.org/licenses/>.\n"
+	);
+	return 0;
+}
+
 int doHelp(void)
 {
 	puts(
-"usage: <command> [<args>]\n"
+"usage: SimDisplayCLI <command> [<args>]\n"
 "\n"
 "Commands are:\n"
-"  send   transmit data to device over serial connection\n"
-"  save   saves a gaming session to file\n"
-"  csv    convert data from a saved session into a CSV format file\n"
-"  replay reads a saved session and populates shared memory\n"
+"  send    transmit data to device over serial connection\n"
+"  save    saves a gaming session to file\n"
+"  csv     convert data from a saved session into a CSV format file\n"
+"  replay  reads a saved session and populates shared memory\n"
+"  version prints version information\n"
+"  license prints the license terms\n"
 );
-	return 1;
+	return 0;
 }
 
 int wmain(int argc, const wchar_t *argv[])
 {
-	enum { SEND, SAVE, CSV, REPLAY, HELP } action = HELP;
+	enum { HELP, SEND, SAVE, CSV, REPLAY, VERSION, LICENSE } action = HELP;
 
 	if (argc > 1) {
 		if (!wcscmp(argv[1], L"send")) {
@@ -493,6 +530,10 @@ int wmain(int argc, const wchar_t *argv[])
 			action = CSV;
 		} else if (!wcscmp(argv[1], L"replay")) {
 			action = REPLAY;
+		} else if (!wcscmp(argv[1], L"version")) {
+			action = VERSION;
+		} else if (!wcscmp(argv[1], L"license")) {
+			action = LICENSE;
 		} else {
 			action = HELP;
 		}
@@ -512,6 +553,10 @@ int wmain(int argc, const wchar_t *argv[])
 		return doCsv(argc, argv);
 	case REPLAY:
 		return doReplay(argc, argv);
+	case VERSION:
+		return doVersion();
+	case LICENSE:
+		return doLicense();
 	}
 
 	return 0;

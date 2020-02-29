@@ -18,6 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#define SIMDISPLAYPROTOCOL_VERSION "1"
+
 /* Requires uint8_t and uint16_t, found in stdint.h */
 
 struct SimDisplayPacket {
