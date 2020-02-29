@@ -1,5 +1,5 @@
 /*
-  simdisplay - A simracing dashboard created using Arduino to show shared memory
+  SimDisplay - A simracing dashboard created using Arduino to show shared memory
              telemetry from Assetto Corsa Competizione.
 
   Copyright (C) 2020  Filippo Erik Negroni
