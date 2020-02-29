@@ -1,4 +1,4 @@
-= `Simdisplay/Device/UnoR3`
+= `Device/UnoR3`
 
 The Arduino Uno R3 is a fairly versatile and cheap device
 that supports several elements of the dashboard.
@@ -9,20 +9,20 @@ In this folder you will find all you need to build and run Simdisplay on this de
 
 |===
 |README.adoc |This very document.
-|arduino-ide |The Arduino IDE project is in there.
-|simdisplay_unor3.fzz |The breadboard wiring diagram; you will need Fritzing 0.9 to edit this. 
-|simdisplay_unor3_bom.html |The Bill Of Materials (BOM) exported from Fritzing.
-|simdisplay_unor3_breadboard.png |The breadboard wiring diagram, exported as a picture.
+|ArduinoIDE |The Arduino IDE project is in there.
+|SimDisplay_UnoR3.fzz |The breadboard wiring diagram; you will need Fritzing 0.9 to edit this. 
+|SimDisplay_UnoR3_BOM.html |The Bill Of Materials (BOM) exported from Fritzing.
+|SimDisplay_UnoR3_breadboard.png |The breadboard wiring diagram, exported as a picture.
 |===
 
 == Shop for and Build your device
 
-The https://htmlpreview.github.io/?https://github.com/fenegroni/simdisplay/blob/master/Device/UnoR3/simdisplay_unor3_bom.html[Bill Of Materials (BOM)] found in this folder
+The https://htmlpreview.github.io/?https://github.com/fenegroni/simdisplay/blob/master/Device/UnoR3/SimDisplay_UnoR3_BOM.html[Bill Of Materials (BOM)] found in this folder
 lists all the items you need to build the Simdisplay Uno R3 dashboard.
 
 Once you have all the necessary parts, you can start assembling the parts on a breadboard
-according to the link:simdisplay_unor3.fzz[Fritzing breadboard wiring diagram]:
+according to the link:SimDisplay_UnoR3.fzz[Fritzing breadboard wiring diagram]:
 
-image::simdisplay_unor3_breadboard.png[breadboard wiring diagram]
+image::SimDisplay_UnoR3_breadboard.png[breadboard wiring diagram]
 
 == Build and Upload the Firmware

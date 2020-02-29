@@ -1,4 +1,4 @@
-= simdisplay
+= SimDisplay
 
 image::https://raw.githubusercontent.com/fenegroni/fenegroni.github.io/master/1.jpg[lcddisplay]
 
@@ -16,7 +16,7 @@ For a copy of the GNU General Public License see <https://www.gnu.org/licenses/>
 
 == Description
 
-The simdisplay project contains everything you need to build and run a real simracing dashboard
+The SimDisplay project contains everything you need to build and run a real simracing dashboard
 showing telemetry information from the racing simulator Assetto Corsa Competizione (ACC), in real time.
 
 A Windows process reads data from ACC's shared memory telemetry and streams it to a supported device
@@ -45,7 +45,7 @@ The README file in that folder has more detail.
 
 === Build the Service
 
-Open the solution file `simdisplay.sln` in folder `Service/Windows/visualstudio` using Visual Studio 2019.
+Open the solution file `SimDisplay.sln` in folder `Service/Windows/visualstudio` using Visual Studio 2019.
 
 Build the solution which will create a Windows 64-bit Console application called SimDisplayCLI.
 
@@ -55,7 +55,7 @@ More detailed instructions and information can be found in the README file in th
 
 and upload the firmware to your device
 
-Under `Device/UnoR3/arduino-ide/simdisplay` you will find the Arduino IDE project file `simdisplay.ino`.
+Under `Device/UnoR3/ArduinoIDE/SimDisplay` you will find the Arduino IDE project file `SimDisplay.ino`.
 
 This is the embedded software that will run on the Arduino Uno R3 board microcontroller:
 it receives telemetry data from the Windows host via the USB-to-serial interface
