@@ -22,25 +22,37 @@ showing telemetry information from the racing simulator Assetto Corsa Competizio
 A Windows process reads data from ACC's shared memory telemetry and streams it to a supported device
 running the embedded software which is also part of this project.
 
-The only supported device at this time is any Arduino Uno R3 compatible board communicating over
-a serial connection to the Windows 10 host running ACC.
+== Getting Started
 
-The board must be wired to a number of LED's and a Hitachi 16x2 character display
-to shows the relevant data, such as ABS and TC level, gear, redline RPM, etc.
+=== Prerequisites
 
-== Hardware and Software
+At a minimum, you will need:
+* Windows 10;
+* Visual Studio 2019 Community Edition;
+* Arduino IDE 1.8;
+* this code repository (download or clone);
+* the components for the device you are going to build.
 
-What makes this project interesting is that it is inexpensive
-and can be assembled with very limited electronics and programming skills.
+At the time of writing this README document, the only supported device is the Arduino Uno R3.
 
-The whole process will be documented with wiring and assembly diagrams
-as well as explanation of what the code does and the protocol used.
+I have made a Fritzing diagram, exported as a breadboard wiring image.
+I have also exported a BOM (bill of materials) as your shopping list for this project.
 
-== Project folder outline
+These are found in the `Device/UnoR3` folder.
 
-After cloning or downloading this repository, you will find two folders: `Device` and `Service`.
+The README file in that folder has more detail.
 
-=== `Device`
+=== Build the Service
+
+Open the solution file `simdisplay.sln` in folder `Service/Windows/visualstudio` using Visual Studio 2019.
+
+Build the solution which will create a Windows 64-bit Console application called SimDisplayCLI.
+
+More detailed instructions and information can be found in the README file in the `Service` folder.
+
+=== Build the device
+
+and upload the firmware to your device
 
 Under `Device/UnoR3/arduino-ide/simdisplay` you will find the Arduino IDE project file `simdisplay.ino`.
 
@@ -56,23 +68,3 @@ You can compile and upload the project to your Arduino board from the avialble W
 installing the IDE on your computer if you so wish.
 
 For more information, refer to the README.adoc file in the folder `Device/UnoR3/arduino-ide`.
-
-=== `Service`
-
-Under `Service/Windows/visualstudio` you will find the Visual Studio 2019 solution file `simdisplay.sln`.
-
-This is the Windows 64-bit Console application that will run on the Windows host
-where ACC is installed and runs from.
-
-For more information, refer to the `README.adoc` in the folder `Service/Windows/visualstudio`.
-
-== Design decisions
-
-=== Redline RPM LEDs
-
-The shift rpm value is the value that should trigger the last led to
-light up, or optionally (to be decided) the entire line of leds to
-blink, so the driver can shift to the next gear.
-The optimum rpm is the rpm the engine will have the most torque, which
-normally would be the rpm it lands on after an upshift.
-This should light up the first led on the rpm line.
