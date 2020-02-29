@@ -38,7 +38,7 @@ At the time of writing this README document, the only supported device is the Ar
 I have made a Fritzing diagram, exported as a breadboard wiring image.
 I have also exported a BOM (bill of materials) as your shopping list for this project.
 
-These are found in the `Device/UnoR3` folder.
+These are found in the https://github.com/fenegroni/simdisplay/tree/master/Device/UnoR3[`Device/UnoR3`] folder.
 
 The README file in that folder has more detail.
 
