@@ -17,7 +17,7 @@ In this folder you will find all you need to build and run Simdisplay on this de
 
 == Shop for and Build your device
 
-The https://htmlpreview.github.io/?https://github.com/fenegroni/simdisplay/blob/add-docs/Device/UnoR3/simdisplay_unor3_bom.html[Bill Of Materials (BOM)] found in this folder
+The https://htmlpreview.github.io/?https://github.com/fenegroni/simdisplay/blob/master/Device/UnoR3/simdisplay_unor3_bom.html[Bill Of Materials (BOM)] found in this folder
 lists all the items you need to build the Simdisplay Uno R3 dashboard.
 
 Once you have all the necessary parts, you can start assembling the parts on a breadboard
