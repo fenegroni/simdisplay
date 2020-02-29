@@ -2,9 +2,7 @@
 
 In this folder you will find a folder for each supported device.
 
-.Files and Folders
 |===
-|File or Folder |Description
 |README.adoc |This very document.
 |`UnoR3/` |All you need to know to build and run the UnoR3 device
 |===
