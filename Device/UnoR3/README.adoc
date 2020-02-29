@@ -21,7 +21,7 @@ The https://htmlpreview.github.io/?https://github.com/fenegroni/simdisplay/blob/
 lists all the items you need to build the Simdisplay Uno R3 dashboard.
 
 Once you have all the necessary parts, you can start assembling the parts on a breadboard
-according to the link:simdisplay_unor3_bom.fzz[Fritzing breadboard wiring diagram]:
+according to the link:simdisplay_unor3.fzz[Fritzing breadboard wiring diagram]:
 
 image::simdisplay_unor3_breadboard.png[breadboard wiring diagram]
 
