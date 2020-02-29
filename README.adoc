@@ -1,4 +1,4 @@
-= Simdisplay
+= simdisplay
 
 image::https://raw.githubusercontent.com/fenegroni/fenegroni.github.io/master/1.jpg[lcddisplay]
 
@@ -16,7 +16,7 @@ For a copy of the GNU General Public License see <https://www.gnu.org/licenses/>
 
 == Description
 
-The Simdisplay project contains everything you need to build and run a real simracing dashboard
+The simdisplay project contains everything you need to build and run a real simracing dashboard
 showing telemetry information from the racing simulator Assetto Corsa Competizione (ACC), in real time.
 
 A Windows process reads data from ACC's shared memory telemetry and streams it to a supported device
