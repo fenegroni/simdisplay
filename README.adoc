@@ -27,6 +27,7 @@ running the embedded software which is also part of this project.
 === Prerequisites
 
 At a minimum, you will need:
+
 * Windows 10;
 * Visual Studio 2019 Community Edition;
 * Arduino IDE 1.8;
