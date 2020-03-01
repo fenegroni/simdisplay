@@ -17,7 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define SIMDISPLAYPROTOCOL_VERSION "1"
+#define SIMDISPLAYPROTOCOL_VERSION 0x0100
+#define SIMDISPLAYPROTOCOL_VERSION_STRING "1"
 
 /* Requires uint8_t and uint16_t, found in stdint.h */
 
