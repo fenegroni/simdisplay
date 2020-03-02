@@ -255,7 +255,7 @@ int doSend(int argc, const wchar_t *argv[])
 
 int doHelpSave(void)
 {
-	fprintf(stderr,
+	puts(
 		"usage: SimDisplayCLI save [<prefix>]\n\n"
 		"Saves shared memory from ACC gaming sessions to a local file named\n\n"
 		"  prefixYYYMMDD-HHMMSS.bin\n\n"
@@ -428,29 +428,31 @@ int doCsv(int argc, const wchar_t *argv[])
 	return 0;
 }
 
+int doHelpReplay(error)
+{
+	fprintf(error ? stderr : stdout,
+		"usage: SimDisplayCLI replay <savefile>...\n\n"
+		"Reads packets from every <savefile>, in turn, and populates the ACC shared memory.\n"
+		"The packets are read at the rate they were captured.\n\n"
+	);
+	return error;
+}
+
 int doReplay(int argc, const wchar_t *argv[])
 {
-	HANDLE stdinh;
 	HANDLE *input;
 
 	if (!argc) {
-		stdinh = GetStdHandle(STD_INPUT_HANDLE);
-		input = &stdinh;
-		if (*input == INVALID_HANDLE_VALUE) {
-			fprintf(stderr, "Error: GetStdHandle STD_INPUT_HANDLE: %d\n", GetLastError());
+		return doHelpReplay(1);
+	}
+
+	input = malloc(argc * sizeof(HANDLE));
+	if (!input) ExitProcess(1);
+	for (int i = 0; i < argc; ++i) {
+		input[i] = CreateFile(argv[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (INVALID_HANDLE_VALUE == input[i]) {
+			fprintf(stderr, "Error: open %S: %d\n", argv[i], GetLastError());
 			return 1;
-		}
-		argc = 1;
-		argv[0] = L"stdin";
-	} else {
-		input = malloc(argc * sizeof(HANDLE));
-		if (!input) ExitProcess(1);
-		for (int i = 0; i < argc; ++i) {
-			input[i] = CreateFile(argv[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (INVALID_HANDLE_VALUE == input[i]) {
-				fprintf(stderr, "Error: open %S: %d\n", argv[i], GetLastError());
-				return 1;
-			}
 		}
 	}
 	
@@ -560,13 +562,13 @@ int doHelp(int argc, const wchar_t *argv[])
 			return 1; // doHelpCsv();
 		}
 		if (!wcscmp(argv[0], L"replay")) {
-			return 1; // doHelpReplay();
+			return doHelpReplay(0);
 		}
 	}
 	puts(
 		"usage: SimDisplayCLI help <command>\n"
 		"\n"
-		"Commands are send, save, csv, replay.\n"
+		"<command> is one of send, save, csv, replay.\n"
 	);
 	return 1;
 }
@@ -574,9 +576,9 @@ int doHelp(int argc, const wchar_t *argv[])
 int doUsage(void)
 {
 	puts(
-		"usage: SimDisplayCLI <command> [<args>]\n"
+		"usage: SimDisplayCLI <command> [<option>...]\n"
 		"\n"
-		"Commands are:\n"
+		"<command> is one of:\n"
 		"  help    get usage help for a command\n"
 		"  send    transmit data to device over serial connection\n"
 		"  save    saves a gaming session to file\n"
