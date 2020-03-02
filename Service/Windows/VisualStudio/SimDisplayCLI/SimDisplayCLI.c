@@ -20,6 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #define SIMDISPLAYCLI_VERSION 0x0801
 #define SIMDISPLAYCLI_VERSION_STRING "8.1"
+#define SIMDISPLAYCLI_SAVE_VERSION 0x0100
+#define SIMDISPLAYCLI_SAVE_VERSION_STRING "1"
 
 #include <windows.h>
 #include <string.h>
@@ -303,10 +305,10 @@ int doSave(int argc, const wchar_t *argv[])
 		return 1;
 	}
 	DWORD bytesWritten;
-	uint16_t versioninfo[2] = { SIMDISPLAYCLI_VERSION, ACCSHAREDMEMORY_VERSION };
-	WriteFile(output, versioninfo, sizeof versioninfo, &bytesWritten, NULL);
+	uint16_t versioninfo[2] = { SIMDISPLAYCLI_SAVE_VERSION, ACCSHAREDMEMORY_VERSION };
+	WriteFile(output, versioninfo, sizeof(versioninfo), &bytesWritten, NULL);
 	if (bytesWritten < sizeof versioninfo) {
-		fprintf(stderr, "Error: write to %S: %d\n", binfilename, GetLastError());
+		fprintf(stderr, "Error: write version info to %S: %d\n", binfilename, GetLastError());
 		return 1;
 	}
 	while (1) {
@@ -473,9 +475,26 @@ int doReplay(int argc, const wchar_t *argv[])
 			printf("Error: SetWaitableTimer: %d\n", GetLastError());
 			return 1;
 		}
+
+		DWORD bytesRead;
+		uint16_t versioninfo[2];
+		if (!ReadFile(input[i], versioninfo, sizeof(versioninfo), &bytesRead, NULL) || bytesRead < sizeof versioninfo) {
+			fprintf(stderr, "Error: read version info in %S: %d\n", argv[i], GetLastError());
+			continue;
+		}
+		if (versioninfo[0] != SIMDISPLAYCLI_SAVE_VERSION) {
+			fprintf(stderr, "Errro: unsupported SimDisplayCLI save file format in %S\n", argv[i]);
+			continue;
+		}
+		if (versioninfo[1] != ACCSHAREDMEMORY_VERSION) {
+			fprintf(stderr, "Error: unsupported AccSharedMemory version in %S\n", argv[i]);
+			continue;
+		}
+
 		DWORD phyBytesRead;
 		DWORD graBytesRead;
 		DWORD staBytesRead;
+		int readerror = 0;
 		do {
 			if (WaitForSingleObject(replayTimer, INFINITE) != WAIT_OBJECT_0) {
 				fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
@@ -484,10 +503,10 @@ int doReplay(int argc, const wchar_t *argv[])
 			if (!ReadFile(input[i], phy, sizeof(*phy), &phyBytesRead, NULL)
 				|| !ReadFile(input[i], gra, sizeof(*gra), &graBytesRead, NULL)
 				|| !ReadFile(input[i], sta, sizeof(*sta), &staBytesRead, NULL)) {
-				fprintf(stderr, "Error: ReadFile %S: %d\n", argv[i], GetLastError());
-				return 1;
+				readerror = 1;
+				fprintf(stderr, "Error: read %S: %d\n", argv[i], GetLastError());
 			}
-		} while (phyBytesRead || graBytesRead || staBytesRead);
+		} while (!readerror && phyBytesRead && graBytesRead && staBytesRead);
 	}
 
 	return 0;
@@ -497,6 +516,7 @@ int doVersion(void)
 {
 	puts(
 		"SimDisplayCLI version " SIMDISPLAYCLI_VERSION_STRING "\n"
+		"SimDisplayCLI save file format version " SIMDISPLAYCLI_SAVE_VERSION_STRING "\n"
 		"SimDisplay protocol version " SIMDISPLAYPROTOCOL_VERSION_STRING "\n"
 		"ACCSharedMemory version " ACCSHAREDMEMORY_VERSION_STRING "\n"
 		);
@@ -506,24 +526,24 @@ int doVersion(void)
 int doLicense(void)
 {
 	puts(
-"SimDisplay - A simracing dashboard created using Arduino to show shared memory\n"
-"	      telemetry from Assetto Corsa Competizione.\n"
-"\n"
-"Copyright(C) 2020  Filippo Erik Negroni\n"
-"\n"
-"This program is free software : you can redistribute it and /or modify\n"
-"it under the terms of the GNU General Public License as published by\n"
-"the Free Software Foundation, either version 3 of the License, or\n"
-"(at your option) any later version.\n"
-"\n"
-"This program is distributed in the hope that it will be useful,\n"
-"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the\n"
-"GNU General Public License for more details.\n"
-"\n"
-"You should have received a copy of the GNU General Public License\n"
-"along with this program.If not, see <https://www.gnu.org/licenses/>.\n"
-	);
+		"SimDisplay - A simracing dashboard created using Arduino to show shared memory\n"
+		"	      telemetry from Assetto Corsa Competizione.\n"
+		"\n"
+		"Copyright(C) 2020  Filippo Erik Negroni\n"
+		"\n"
+		"This program is free software : you can redistribute it and /or modify\n"
+		"it under the terms of the GNU General Public License as published by\n"
+		"the Free Software Foundation, either version 3 of the License, or\n"
+		"(at your option) any later version.\n"
+		"\n"
+		"This program is distributed in the hope that it will be useful,\n"
+		"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+		"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the\n"
+		"GNU General Public License for more details.\n"
+		"\n"
+		"You should have received a copy of the GNU General Public License\n"
+		"along with this program.If not, see <https://www.gnu.org/licenses/>.\n"
+		);
 	return 0;
 }
 
