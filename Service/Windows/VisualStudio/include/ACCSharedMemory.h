@@ -17,7 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define ACCSHAREDMEMORY_VERSION "1.3"
+#define ACCSHAREDMEMORY_VERSION 0x0103
+#define ACCSHAREDMEMORY_VERSION_STRING "1.3"
 
 #define ACC_OFF 0
 #define ACC_REPLAY 1

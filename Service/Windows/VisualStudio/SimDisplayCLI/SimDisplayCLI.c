@@ -18,7 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define SIMDISPLAYCLI_VERSION "8.1"
+#define SIMDISPLAYCLI_VERSION 0x0801
+#define SIMDISPLAYCLI_VERSION_STRING "8.1"
+#define SIMDISPLAYCLI_SAVE_VERSION 0x0100
+#define SIMDISPLAYCLI_SAVE_VERSION_STRING "1"
 
 #include <windows.h>
 #include <string.h>
@@ -250,28 +253,22 @@ int doSend(int argc, const wchar_t *argv[])
 	return 1;
 }
 
+int doHelpSave(void)
+{
+	fprintf(stderr,
+		"usage: SimDisplayCLI save [<prefix>]\n\n"
+		"Saves shared memory from ACC gaming sessions to a local file named\n\n"
+		"  prefixYYYMMDD-HHMMSS.bin\n\n"
+		"where prefix is the (optional) first command line argument to this command.\n"
+	);
+	return 0;
+}
+
 int doSave(int argc, const wchar_t *argv[])
 {
-	HANDLE output;
-
-	if (!argc) {
-		output = GetStdHandle(STD_OUTPUT_HANDLE);
-		if (output == INVALID_HANDLE_VALUE) {
-			fprintf(stderr, "Error: GetStdHandle STD_OUTPUT_HANDLE: %d\n", GetLastError());
-			return 1;
-		}
-	} else {
-		if (argc != 1) {
-			fprintf(stderr, "usage: save [<output_file_name>]\n\n");
-			fprintf(stderr, "The current ACC session is saved in <output_file_name>.\n");
-			fprintf(stderr, "If no output is specified, this command writes to stdout.\n");
-			return 1;
-		}
-		output = CreateFile(argv[0], GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (INVALID_HANDLE_VALUE == output) {
-			fprintf(stderr, "Error: create %S: %d\n", argv[1], GetLastError());
-			return 1;
-		}
+	const wchar_t *prefix = L"";
+	if (argc) {
+		prefix = argv[0];
 	}
 
 	struct ACCPhysics *phy;
@@ -293,14 +290,45 @@ int doSave(int argc, const wchar_t *argv[])
 		printf("Error: SetWaitableTimer: %d\n", GetLastError());
 		return 1;
 	}
-	DWORD bytesWritten;
-	while (WaitForSingleObject(saveTimer, INFINITE) == WAIT_OBJECT_0) {
-		WriteFile(output, phy, sizeof(*phy), &bytesWritten, NULL);
-		WriteFile(output, gra, sizeof(*gra), &bytesWritten, NULL);
-		WriteFile(output, sta, sizeof(*sta), &bytesWritten, NULL);
+
+	wchar_t binfilename[MAX_PATH];
+	SYSTEMTIME dt;
+	GetSystemTime(&dt);
+	if (0 > swprintf(binfilename, MAX_PATH, L"%s%d%02d%02d-%02d%02d%02d.bin",
+		prefix, dt.wYear, dt.wMonth, dt.wDay, dt.wHour, dt.wMinute, dt.wSecond)) {
+		fprintf(stderr, "Error: prefix is too long.\n");
+		return 1;
 	}
-	fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
-	return 1;
+	HANDLE output = CreateFile(binfilename, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == output) {
+		fprintf(stderr, "Error: create %S: %d\n", binfilename, GetLastError());
+		return 1;
+	}
+	DWORD bytesWritten;
+	uint16_t versioninfo[2] = { SIMDISPLAYCLI_SAVE_VERSION, ACCSHAREDMEMORY_VERSION };
+	WriteFile(output, versioninfo, sizeof(versioninfo), &bytesWritten, NULL);
+	if (bytesWritten < sizeof versioninfo) {
+		fprintf(stderr, "Error: write version info to %S: %d\n", binfilename, GetLastError());
+		return 1;
+	}
+	while (1) {
+		DWORD totalBytesWritten;
+		WriteFile(output, phy, sizeof(*phy), &bytesWritten, NULL);
+		totalBytesWritten = bytesWritten;
+		WriteFile(output, gra, sizeof(*gra), &bytesWritten, NULL);
+		totalBytesWritten += bytesWritten; 
+		WriteFile(output, sta, sizeof(*sta), &bytesWritten, NULL);
+		totalBytesWritten += bytesWritten;
+		if (totalBytesWritten < (sizeof(*sta) + sizeof(*gra) + sizeof(*phy))) {
+			fprintf(stderr, "Error: write to %S: %d\n", binfilename, GetLastError());
+			return 1;
+		}
+		if (WaitForSingleObject(saveTimer, INFINITE) != WAIT_OBJECT_0) {
+			fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
+			return 1;
+		}
+	}
+	return 0;
 }
 
 static void printRedline(char leds[9], uint16_t rpm, uint16_t shiftrpm, uint16_t optrpm)
@@ -447,9 +475,26 @@ int doReplay(int argc, const wchar_t *argv[])
 			printf("Error: SetWaitableTimer: %d\n", GetLastError());
 			return 1;
 		}
+
+		DWORD bytesRead;
+		uint16_t versioninfo[2];
+		if (!ReadFile(input[i], versioninfo, sizeof(versioninfo), &bytesRead, NULL) || bytesRead < sizeof versioninfo) {
+			fprintf(stderr, "Error: read version info in %S: %d\n", argv[i], GetLastError());
+			continue;
+		}
+		if (versioninfo[0] != SIMDISPLAYCLI_SAVE_VERSION) {
+			fprintf(stderr, "Errro: unsupported SimDisplayCLI save file format in %S\n", argv[i]);
+			continue;
+		}
+		if (versioninfo[1] != ACCSHAREDMEMORY_VERSION) {
+			fprintf(stderr, "Error: unsupported AccSharedMemory version in %S\n", argv[i]);
+			continue;
+		}
+
 		DWORD phyBytesRead;
 		DWORD graBytesRead;
 		DWORD staBytesRead;
+		int readerror = 0;
 		do {
 			if (WaitForSingleObject(replayTimer, INFINITE) != WAIT_OBJECT_0) {
 				fprintf(stderr, "Error: WaitForSingleObject: %d\n", GetLastError());
@@ -458,10 +503,10 @@ int doReplay(int argc, const wchar_t *argv[])
 			if (!ReadFile(input[i], phy, sizeof(*phy), &phyBytesRead, NULL)
 				|| !ReadFile(input[i], gra, sizeof(*gra), &graBytesRead, NULL)
 				|| !ReadFile(input[i], sta, sizeof(*sta), &staBytesRead, NULL)) {
-				fprintf(stderr, "Error: ReadFile %S: %d\n", argv[i], GetLastError());
-				return 1;
+				readerror = 1;
+				fprintf(stderr, "Error: read %S: %d\n", argv[i], GetLastError());
 			}
-		} while (phyBytesRead || graBytesRead || staBytesRead);
+		} while (!readerror && phyBytesRead && graBytesRead && staBytesRead);
 	}
 
 	return 0;
@@ -470,56 +515,82 @@ int doReplay(int argc, const wchar_t *argv[])
 int doVersion(void)
 {
 	puts(
-"SimDisplayCLI version " SIMDISPLAYCLI_VERSION "\n"
-"SimDisplay protocol version " SIMDISPLAYPROTOCOL_VERSION "\n"
-"ACCSharedMemory version " ACCSHAREDMEMORY_VERSION "\n"
-	);
+		"SimDisplayCLI version " SIMDISPLAYCLI_VERSION_STRING "\n"
+		"SimDisplayCLI save file format version " SIMDISPLAYCLI_SAVE_VERSION_STRING "\n"
+		"SimDisplay protocol version " SIMDISPLAYPROTOCOL_VERSION_STRING "\n"
+		"ACCSharedMemory version " ACCSHAREDMEMORY_VERSION_STRING "\n"
+		);
 	return 0;
 }
 
 int doLicense(void)
 {
 	puts(
-"SimDisplay - A simracing dashboard created using Arduino to show shared memory\n"
-"	      telemetry from Assetto Corsa Competizione.\n"
-"\n"
-"Copyright(C) 2020  Filippo Erik Negroni\n"
-"\n"
-"This program is free software : you can redistribute it and /or modify\n"
-"it under the terms of the GNU General Public License as published by\n"
-"the Free Software Foundation, either version 3 of the License, or\n"
-"(at your option) any later version.\n"
-"\n"
-"This program is distributed in the hope that it will be useful,\n"
-"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the\n"
-"GNU General Public License for more details.\n"
-"\n"
-"You should have received a copy of the GNU General Public License\n"
-"along with this program.If not, see <https://www.gnu.org/licenses/>.\n"
-	);
+		"SimDisplay - A simracing dashboard created using Arduino to show shared memory\n"
+		"	      telemetry from Assetto Corsa Competizione.\n"
+		"\n"
+		"Copyright(C) 2020  Filippo Erik Negroni\n"
+		"\n"
+		"This program is free software : you can redistribute it and /or modify\n"
+		"it under the terms of the GNU General Public License as published by\n"
+		"the Free Software Foundation, either version 3 of the License, or\n"
+		"(at your option) any later version.\n"
+		"\n"
+		"This program is distributed in the hope that it will be useful,\n"
+		"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+		"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the\n"
+		"GNU General Public License for more details.\n"
+		"\n"
+		"You should have received a copy of the GNU General Public License\n"
+		"along with this program.If not, see <https://www.gnu.org/licenses/>.\n"
+		);
 	return 0;
 }
 
-int doHelp(void)
+int doHelp(int argc, const wchar_t *argv[])
+{
+	if (argc) {
+		if (!wcscmp(argv[0], L"send")) {
+			return 1; // doHelpSend();
+		}
+		if (!wcscmp(argv[0], L"save")) {
+			return doHelpSave();
+		}
+		if (!wcscmp(argv[0], L"csv")) {
+			return 1; // doHelpCsv();
+		}
+		if (!wcscmp(argv[0], L"replay")) {
+			return 1; // doHelpReplay();
+		}
+	}
+	puts(
+		"usage: SimDisplayCLI help <command>\n"
+		"\n"
+		"Commands are send, save, csv, replay.\n"
+	);
+	return 1;
+}
+
+int doUsage(void)
 {
 	puts(
-"usage: SimDisplayCLI <command> [<args>]\n"
-"\n"
-"Commands are:\n"
-"  send    transmit data to device over serial connection\n"
-"  save    saves a gaming session to file\n"
-"  csv     convert data from a saved session into a CSV format file\n"
-"  replay  reads a saved session and populates shared memory\n"
-"  version prints version information\n"
-"  license prints the license terms\n"
-);
+		"usage: SimDisplayCLI <command> [<args>]\n"
+		"\n"
+		"Commands are:\n"
+		"  help    get usage help for a command\n"
+		"  send    transmit data to device over serial connection\n"
+		"  save    saves a gaming session to file\n"
+		"  csv     convert data from a saved session into a CSV format file\n"
+		"  replay  reads a saved session and populates shared memory\n"
+		"  version prints version information\n"
+		"  license prints the license terms\n"
+	);
 	return 0;
 }
 
 int wmain(int argc, const wchar_t *argv[])
 {
-	enum { HELP, SEND, SAVE, CSV, REPLAY, VERSION, LICENSE } action = HELP;
+	enum { USAGE, HELP, SEND, SAVE, CSV, REPLAY, VERSION, LICENSE } action = USAGE;
 
 	if (argc > 1) {
 		if (!wcscmp(argv[1], L"send")) {
@@ -534,8 +605,10 @@ int wmain(int argc, const wchar_t *argv[])
 			action = VERSION;
 		} else if (!wcscmp(argv[1], L"license")) {
 			action = LICENSE;
-		} else {
+		} else if (!wcscmp(argv[1], L"help")) {
 			action = HELP;
+		} else {
+			action = USAGE;
 		}
 	}
 
@@ -543,8 +616,10 @@ int wmain(int argc, const wchar_t *argv[])
 	argv += 2;
 
 	switch (action) {
+	case USAGE:
+		return doUsage();
 	case HELP:
-		return doHelp();
+		return doHelp(argc, argv);
 	case SEND:
 		return doSend(argc, argv);
 	case SAVE:
