@@ -428,7 +428,7 @@ int doCsv(int argc, const wchar_t *argv[])
 	return 0;
 }
 
-int doHelpReplay(error)
+int doHelpReplay(int error)
 {
 	fprintf(error ? stderr : stdout,
 		"usage: SimDisplayCLI replay <savefile>...\n\n"
