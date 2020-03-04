@@ -24,11 +24,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define SIMDISPLAYCLI_SAVE_VERSION_STRING "1"
 
 #include <windows.h>
-#include <string.h>
+#include <shlwapi.h>
 
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "..\include\ACCSharedMemory.h"
 #include "..\include\SimDisplayProtocol.h"
@@ -156,6 +157,26 @@ int mapAcpmf(enum mapAcpmf_action action, struct ACCPhysics **phy, struct ACCGra
 	}
 
 	return err;
+}
+
+int writeVersionInfo(HANDLE f)
+{
+	DWORD bw;
+	uint16_t info[2] = { SIMDISPLAYCLI_SAVE_VERSION, ACCSHAREDMEMORY_VERSION };
+	int ret = WriteFile(f, info, sizeof info, &bw, NULL);
+	return !ret || bw < sizeof info;
+}
+
+int readVersionInfo(HANDLE f, uint16_t *savever, uint16_t *shmemver)
+{
+	DWORD br;
+	uint16_t info[2];
+	if (!ReadFile(f, info, sizeof info, &br, NULL) || br < sizeof info) {
+		return 1;
+	}
+	*savever = info[0];
+	*shmemver = info[1];
+	return 0;
 }
 
 uint16_t bbFromBrakeBias(float brakeBias, float offset)
@@ -304,22 +325,19 @@ int doSave(int argc, const wchar_t *argv[])
 		fprintf(stderr, "Error: create %S: %d\n", binfilename, GetLastError());
 		return 1;
 	}
-	DWORD bytesWritten;
-	uint16_t versioninfo[2] = { SIMDISPLAYCLI_SAVE_VERSION, ACCSHAREDMEMORY_VERSION };
-	WriteFile(output, versioninfo, sizeof(versioninfo), &bytesWritten, NULL);
-	if (bytesWritten < sizeof versioninfo) {
+	if (writeVersionInfo(output)) {
 		fprintf(stderr, "Error: write version info to %S: %d\n", binfilename, GetLastError());
 		return 1;
 	}
 	while (1) {
-		DWORD totalBytesWritten;
-		WriteFile(output, phy, sizeof(*phy), &bytesWritten, NULL);
-		totalBytesWritten = bytesWritten;
-		WriteFile(output, gra, sizeof(*gra), &bytesWritten, NULL);
-		totalBytesWritten += bytesWritten; 
-		WriteFile(output, sta, sizeof(*sta), &bytesWritten, NULL);
-		totalBytesWritten += bytesWritten;
-		if (totalBytesWritten < (sizeof(*sta) + sizeof(*gra) + sizeof(*phy))) {
+		DWORD bw, bwsum;
+		int retphy = WriteFile(output, phy, sizeof(*phy), &bw, NULL);
+		bwsum = bw;
+		int retgra = WriteFile(output, gra, sizeof(*gra), &bw, NULL);
+		bwsum += bw; 
+		int retsta = WriteFile(output, sta, sizeof(*sta), &bw, NULL);
+		bwsum += bw;
+		if (!retphy || !retgra || !retsta || bwsum < (sizeof(*sta) + sizeof(*gra) + sizeof(*phy))) {
 			fprintf(stderr, "Error: write to %S: %d\n", binfilename, GetLastError());
 			return 1;
 		}
@@ -331,110 +349,110 @@ int doSave(int argc, const wchar_t *argv[])
 	return 0;
 }
 
-static void printRedline(char leds[9], uint16_t rpm, uint16_t shiftrpm, uint16_t optrpm)
+int doHelpCsv(int error)
 {
-	if (rpm > shiftrpm) {
-		for (int led = 0; led < 8; ++led) {
-			leds[led] = 'b';
-		}
-	} else {
-		int steprpm = (shiftrpm - optrpm) / 8;
-		for (int led = 0, ledrpm = optrpm; led < 8; ++led, ledrpm += steprpm) {
-			if (rpm > ledrpm) {
-				leds[led] = '1';
-			} else {
-				leds[led] = '0';
-			}
-		}
-	}
-	leds[8] = '\0';
+	fputs(
+		"usage: SimDisplayCLI csv <savefile>...\n\n"
+		"Export every <savefile> into a Comma-Separated Values format file.\n"
+		"For each <savefile>, a file with the extension '.csv' is created.\n"
+		"The export contains all the packets, but only some of the data.\n"
+		"This command is mostly useful for debugging purposes: the physics packet id\n"
+		"can be given as an optional start and end point to the replay command.\n",
+		error ? stderr : stdout);
+	return error;
 }
 
 int doCsv(int argc, const wchar_t *argv[])
 {
-	HANDLE input, output;
-
 	if (!argc) {
-		input = GetStdHandle(STD_INPUT_HANDLE);
-		if (input == INVALID_HANDLE_VALUE) {
-			fprintf(stderr, "Error: GetStdHandle STD_INPUT_HANDLE: %d\n", GetLastError());
-			return 1;
-		}
-		output = GetStdHandle(STD_OUTPUT_HANDLE);
-		if (output == INVALID_HANDLE_VALUE) {
-			fprintf(stderr, "Error: GetStdHandle STD_OUTPUT_HANDLE: %d\n", GetLastError());
-			return 1;
-		}
-	} else {
-		if (argc != 2) {
-			fprintf(stderr, "usage: csv [<input_file_name> <output_file_name>]\n\n");
-			fprintf(stderr, "<input_file_name> is a session data file created using the save command.\n");
-			fprintf(stderr, "<output_file_name> is the name of the CSV output by this command.\n");
-			fprintf(stderr, "If you don't specify the two file names, this command will read from stdin\n");
-			fprintf(stderr, "and write to stdout.\n");
-			return 1;
-		}
-		input = CreateFile(argv[0], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		return doHelpCsv(1);
+	}
+	HANDLE input = INVALID_HANDLE_VALUE;
+	HANDLE output = INVALID_HANDLE_VALUE;
+	for (int i = 0; i < argc; ++i) {
+#pragma warning(suppress : 6001) // input can't be NULL
+		CloseHandle(input);
+#pragma warning(suppress : 6001) // output can't be NULL
+		CloseHandle(output);
+		input = CreateFile(argv[i], GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (INVALID_HANDLE_VALUE == input) {
-			fprintf(stderr, "Error: open %S: %d\n", argv[0], GetLastError());
-			return 1;
+			fprintf(stderr, "Error: open %S: %d\n", argv[i], GetLastError());
+			continue;
 		}
-		output = CreateFile(argv[1], GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		uint16_t inputSaveVersion, inputSharedMemVersion;
+		if (readVersionInfo(input, &inputSaveVersion, &inputSharedMemVersion)) {
+			fprintf(stderr, "Error: read version info in %S: %d\n", argv[i], GetLastError());
+			continue;
+		}
+		if (inputSaveVersion != SIMDISPLAYCLI_SAVE_VERSION) {
+			fprintf(stderr, "Errro: unsupported SimDisplayCLI save file format in %S\n", argv[i]);
+			continue;
+		}
+		if (inputSharedMemVersion != ACCSHAREDMEMORY_VERSION) {
+			fprintf(stderr, "Error: unsupported AccSharedMemory version in %S\n", argv[i]);
+			continue;
+		}
+		wchar_t csvoutputname[MAX_PATH+4+1];
+#pragma warning(suppress : 4996) // wcsncpy is safe here
+		wcsncpy(csvoutputname, argv[i], MAX_PATH);
+		csvoutputname[MAX_PATH] = L'\0';
+#pragma warning(suppress : 4996) // wcscat is safe here
+		wcscat(csvoutputname, L".csv");
+		HANDLE output = CreateFile(csvoutputname, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (INVALID_HANDLE_VALUE == output) {
-			fprintf(stderr, "Error: create %S: %d\n", argv[1], GetLastError());
-			return 1;
+			fprintf(stderr, "Error: create %S: %d\n", csvoutputname, GetLastError());
+			continue;
 		}
-	}
 
-	int maxCsvRecord = 8192;
-	char *csvRecord = malloc(maxCsvRecord);
-	if (!csvRecord) ExitProcess(1);
-	DWORD writtenBytes;
-	if (!WriteFile(output, csvRecord,
-			snprintf(csvRecord, maxCsvRecord,
-					"status,rpm,maxrpm,optrpm,shiftrpm,leds,pitlimiteron,gear,"
-					"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
-					"bb,ibb,fuellaps,map,airt,roadt,car_model\n"),
-			&writtenBytes, NULL)) {
-		fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
-		return 1;
-	}
-	int binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
-	char *binBuffer = malloc(binBufferSize);
-	if (!binBuffer) ExitProcess(1);
-	struct ACCPhysics *phy = (struct ACCPhysics *)binBuffer;
-	struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
-	struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
-	DWORD readBytes;
-	char leds[9];
-	while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
-		struct CarModelData data;
-		data.carModel = sta->carModel;
-		populateCarModelData(&data, sta->maxRpm);
-		printRedline(leds, phy->rpms, data.shiftRpm, data.optRpm);
+		int maxCsvRecord = 8192;
+		char *csvRecord = malloc(maxCsvRecord);
+		if (!csvRecord) ExitProcess(1);
+		DWORD writtenBytes;
 		if (!WriteFile(output, csvRecord,
+			snprintf(csvRecord, maxCsvRecord,
+				"phypacket,status,rpm,maxrpm,optrpm,shiftrpm,leds,pitlimiteron,gear,"
+				"tc,tccut,tcaction,itcaction,abs,absaction,iabsaction,"
+				"bb,ibb,fuellaps,map,airt,roadt,car_model\n"),
+			&writtenBytes, NULL)) {
+			fprintf(stderr, "Error: write CSV header: %d\n", GetLastError());
+			continue;
+		}
+		int binBufferSize = sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics) + sizeof(struct ACCStatic);
+		char *binBuffer = malloc(binBufferSize);
+		if (!binBuffer) ExitProcess(1);
+		struct ACCPhysics *phy = (struct ACCPhysics *)binBuffer;
+		struct ACCGraphics *gra = (struct ACCGraphics *)(binBuffer + sizeof(struct ACCPhysics));
+		struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
+		DWORD readBytes;
+		while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
+			struct CarModelData data;
+			data.carModel = sta->carModel;
+			populateCarModelData(&data, sta->maxRpm);
+			if (!WriteFile(output, csvRecord,
 				snprintf(csvRecord, maxCsvRecord,
-					"%d,%d,%d,%d,%d,%s,%d,%d,"
+					"%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%d,%d,%f,%u,%d,%f,%u,"
 					"%f,%u,%f,%d,%f,%f,%S\n",
-					gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, leds, phy->pitLimiterOn, phy->gear,
+					phy->packetId, gra->status, phy->rpms, sta->maxRpm, data.optRpm, data.shiftRpm, phy->pitLimiterOn, phy->gear,
 					gra->TC, gra->TCCut, phy->tc, (uint8_t)phy->tc, gra->ABS, phy->abs, (uint8_t)phy->abs,
-					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap+1, phy->airTemp, phy->roadTemp, sta->carModel),
+					phy->brakeBias, bbFromBrakeBias(phy->brakeBias, data.bbOffset), gra->fuelEstimatedLaps, gra->EngineMap + 1, phy->airTemp, phy->roadTemp, sta->carModel),
 				&writtenBytes, NULL)) {
-			fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
-			return 1;
+				fprintf(stderr, "Error: write CSV record: %d\n", GetLastError());
+				continue;
+			}
 		}
 	}
 	return 0;
 }
 
-int doHelpReplay(error)
+int doHelpReplay(int error)
 {
-	fprintf(error ? stderr : stdout,
+	fputs(
 		"usage: SimDisplayCLI replay <savefile>...\n\n"
-		"Reads packets from every <savefile>, in turn, and populates the ACC shared memory.\n"
-		"The packets are read at the rate they were captured.\n\n"
-	);
+		"Reads packets from every <savefile>, in turn, and populates\n"
+		"the ACC shared memory.\n"
+		"The packets are read at the rate they were captured.\n",
+		error ? stderr : stdout);
 	return error;
 }
 
@@ -477,22 +495,19 @@ int doReplay(int argc, const wchar_t *argv[])
 			printf("Error: SetWaitableTimer: %d\n", GetLastError());
 			return 1;
 		}
-
-		DWORD bytesRead;
-		uint16_t versioninfo[2];
-		if (!ReadFile(input[i], versioninfo, sizeof(versioninfo), &bytesRead, NULL) || bytesRead < sizeof versioninfo) {
+		uint16_t inputSaveVersion, inputSharedMemVersion;
+		if (readVersionInfo(input[i], &inputSaveVersion, &inputSharedMemVersion)) {
 			fprintf(stderr, "Error: read version info in %S: %d\n", argv[i], GetLastError());
 			continue;
 		}
-		if (versioninfo[0] != SIMDISPLAYCLI_SAVE_VERSION) {
+		if (inputSaveVersion != SIMDISPLAYCLI_SAVE_VERSION) {
 			fprintf(stderr, "Errro: unsupported SimDisplayCLI save file format in %S\n", argv[i]);
 			continue;
 		}
-		if (versioninfo[1] != ACCSHAREDMEMORY_VERSION) {
+		if (inputSharedMemVersion != ACCSHAREDMEMORY_VERSION) {
 			fprintf(stderr, "Error: unsupported AccSharedMemory version in %S\n", argv[i]);
 			continue;
 		}
-
 		DWORD phyBytesRead;
 		DWORD graBytesRead;
 		DWORD staBytesRead;
@@ -510,7 +525,6 @@ int doReplay(int argc, const wchar_t *argv[])
 			}
 		} while (!readerror && phyBytesRead && graBytesRead && staBytesRead);
 	}
-
 	return 0;
 }
 
@@ -533,7 +547,7 @@ int doLicense(void)
 		"\n"
 		"Copyright(C) 2020  Filippo Erik Negroni\n"
 		"\n"
-		"This program is free software : you can redistribute it and /or modify\n"
+		"This program is free software: you can redistribute it and /or modify\n"
 		"it under the terms of the GNU General Public License as published by\n"
 		"the Free Software Foundation, either version 3 of the License, or\n"
 		"(at your option) any later version.\n"
@@ -559,7 +573,7 @@ int doHelp(int argc, const wchar_t *argv[])
 			return doHelpSave();
 		}
 		if (!wcscmp(argv[0], L"csv")) {
-			return 1; // doHelpCsv();
+			return doHelpCsv(0);
 		}
 		if (!wcscmp(argv[0], L"replay")) {
 			return doHelpReplay(0);
