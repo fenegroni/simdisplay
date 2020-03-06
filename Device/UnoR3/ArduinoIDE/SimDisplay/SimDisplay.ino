@@ -165,7 +165,7 @@ static void printRedline(void)
 	static uint8_t bksta = B11111111;
 	static const unsigned long bkint = 100;
 
-	if (newPacket->rpm > newPacket->shftrpm || pitlim) {
+	if (newPacket->rpm > newPacket->shftrpm || newPacket->pitlim) {
 		if (bktm > 0 && millis() - bktm < bkint) {
 			return;
 		}
@@ -219,7 +219,7 @@ static void printGear(void)
 		GEAR_3 = B10011110,
 		GEAR_4 = B11001100,
 		GEAR_5 = B11011010,
-		GEAR_6 = B11111000,
+		GEAR_6 = B11111010,
 	};
 	
 	static uint8_t gearPatterns[] = {
