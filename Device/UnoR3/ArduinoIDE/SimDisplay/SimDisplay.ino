@@ -165,7 +165,7 @@ static void printRedline(void)
 	static uint8_t bksta = B11111111;
 	static const unsigned long bkint = 100;
 
-	if (newPacket->rpm > newPacket->shftrpm) {
+	if (newPacket->rpm > newPacket->shftrpm || pitlim) {
 		if (bktm > 0 && millis() - bktm < bkint) {
 			return;
 		}
