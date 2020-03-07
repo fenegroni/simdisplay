@@ -166,28 +166,28 @@ static void printRedline(void)
 	static const unsigned long bkint = 100;
 
 	if (newPacket->rpm > newPacket->shftrpm) {
-		if (bktm > 0 && millis() - bktm < bkint) {
+		if (millis() - bktm < bkint) {
 			return;
 		}
 		writeRedline(bksta = ~bksta);
 		bktm = millis();
 		return;
-	}
+	} else {
+      bksta = B11111111;
+	  }
+ 
   static unsigned long pltm = 0;
   static uint8_t plsta = B11111111;
   static const unsigned long plint = 500;
 
   if (newPacket->pitlim) {
-    if (pltm > 0 && millis() - pltm < plint) {
+    if (millis() - pltm < plint) {
       return;
     }
     writeRedline(plsta = ~plsta);
     pltm = millis();
     return;
   }
-  
-	bktm = 0;
-	bksta = B11111111;
 	
 	if (newPacket->rpm > newPacket->optrpm) {
 		static const int RLSTAGES = 8;
