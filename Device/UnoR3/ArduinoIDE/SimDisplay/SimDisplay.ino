@@ -166,16 +166,28 @@ static void printRedline(void)
 	static const unsigned long bkint = 100;
 
 	if (newPacket->rpm > newPacket->shftrpm) {
-		if (bktm > 0 && millis() - bktm < bkint) {
+		if (millis() - bktm < bkint) {
 			return;
 		}
 		writeRedline(bksta = ~bksta);
 		bktm = millis();
 		return;
+	} else {
+		bksta = B11111111;
 	}
-	
-	bktm = 0;
-	bksta = B11111111;
+ 
+	static unsigned long pltm = 0;
+	static uint8_t plsta = B11111111;
+	static const unsigned long plint = 500;
+
+	if (newPacket->pitlim) {
+		if (millis() - pltm < plint) {
+			return;
+		}
+		writeRedline(plsta = ~plsta);
+		pltm = millis();
+		return;
+	}
 	
 	if (newPacket->rpm > newPacket->optrpm) {
 		static const int RLSTAGES = 8;
@@ -219,7 +231,7 @@ static void printGear(void)
 		GEAR_3 = B10011110,
 		GEAR_4 = B11001100,
 		GEAR_5 = B11011010,
-		GEAR_6 = B11111000,
+		GEAR_6 = B11111010,
 	};
 	
 	static uint8_t gearPatterns[] = {
