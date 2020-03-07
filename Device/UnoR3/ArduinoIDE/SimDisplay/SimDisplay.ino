@@ -173,21 +173,21 @@ static void printRedline(void)
 		bktm = millis();
 		return;
 	} else {
-      bksta = B11111111;
-	  }
+		bksta = B11111111;
+	}
  
-  static unsigned long pltm = 0;
-  static uint8_t plsta = B11111111;
-  static const unsigned long plint = 500;
+	static unsigned long pltm = 0;
+	static uint8_t plsta = B11111111;
+	static const unsigned long plint = 500;
 
-  if (newPacket->pitlim) {
-    if (millis() - pltm < plint) {
-      return;
-    }
-    writeRedline(plsta = ~plsta);
-    pltm = millis();
-    return;
-  }
+	if (newPacket->pitlim) {
+		if (millis() - pltm < plint) {
+			return;
+		}
+		writeRedline(plsta = ~plsta);
+		pltm = millis();
+		return;
+	}
 	
 	if (newPacket->rpm > newPacket->optrpm) {
 		static const int RLSTAGES = 8;
