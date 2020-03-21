@@ -18,8 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define SIMDISPLAYCLI_VERSION 0x0801
-#define SIMDISPLAYCLI_VERSION_STRING "8.1"
+#define SIMDISPLAYCLI_VERSION 0x0900
+#define SIMDISPLAYCLI_VERSION_STRING "9"
 #define SIMDISPLAYCLI_SAVE_VERSION 0x0100
 #define SIMDISPLAYCLI_SAVE_VERSION_STRING "1"
 
