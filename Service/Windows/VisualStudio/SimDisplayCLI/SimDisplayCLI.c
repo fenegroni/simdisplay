@@ -2,7 +2,7 @@
 SimDisplay - A simracing dashboard created using Arduino to show shared memory
              telemetry from Assetto Corsa Competizione.
 
-Copyright (C) 2020  Filippo Erik Negroni
+Copyright (C) 2021  Filippo Erik Negroni
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define SIMDISPLAYCLI_VERSION 0x0900
-#define SIMDISPLAYCLI_VERSION_STRING "9"
-#define SIMDISPLAYCLI_SAVE_VERSION 0x0100
-#define SIMDISPLAYCLI_SAVE_VERSION_STRING "1"
+#define SIMDISPLAYCLI_VERSION 0x0901
+#define SIMDISPLAYCLI_VERSION_STRING "9.1"
+#define SIMDISPLAYCLI_SAVE_VERSION 0x0101
+#define SIMDISPLAYCLI_SAVE_VERSION_STRING "1.1"
 
 #include <windows.h>
 #include <shlwapi.h>
@@ -39,51 +39,19 @@ enum mapAcpmf_action {
 	MAPACPMF_OPEN_EXISTING
 };
 
-static struct CarModelData {
-	int optRpm;
-	int shiftRpm;
-	float bbOffset;
-	wchar_t *carModel;
-} carModelDict[] = {
-	{ 0, 0, -70.0f,		L"amr_v12_vantage_gt3" },
-	{ 0, 0, -70.0f,		L"amr_v8_vantage_gt3" },
-	{ 0, 0, -140.0f,	L"audi_r8_lms" },
-	{ 0, 0, -140.0f,	L"audi_r8_lms_evo" },
-	{ 0, 0, -70.0f,		L"bentley_continental_gt3_2016" },
-	{ 6300, 7100, -70.0f,	L"bentley_continental_gt3_2018" },
-	{ 0, 0, -150.0f,	L"bmw_m6_gt3" },
-	{ 0, 0, -70.0f,		L"jaguar_g3" },
-	{ 0, 0, -170.0f,	L"ferrari_488_gt3" },
-	{ 0, 0, -140.0f,	L"honda_nsx_gt3" },
-	{ 0, 0, -140.0f,	L"honda_nsx_gt3_evo" },
-	{ 0, 0, -140.0f,	L"lamborghini_gallardo_rex" },
-	{ 0, 0, -150.0f,	L"lamborghini_huracan_gt3" },
-	{ 0, 0, -140.0f,	L"lamborghini_huracan_gt3_evo" },
-	{ 0, 0, -140.0f,	L"lamborghini_huracan_st" },
-	{ 0, 0, -140.0f,	L"lexus_rc_f_gt3" },
-	{ 0, 0, -170.0f,	L"mclaren_650s_gt3" },
-	{ 0, 0, -170.0f,	L"mclaren_720s_gt3" },
-	{ 0, 0, -150.0f,	L"mercedes_amg_gt3" },
-	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2017" },
-	{ 0, 0, -150.0f,	L"nissan_gt_r_gt3_2018" },
-	{ 0, 0, -60.0f,		L"porsche_991_gt3_r" },
-	{ 0, 0, -150.0f,	L"porsche_991ii_gt3_cup" },
-	{ 0, 0, -210.0f,	L"porsche_991ii_gt3_r" },
-};
-
-struct CarModelData * lookupCarModelData(wchar_t *carModel)
+struct ACC_CarModelData * lookupCarModelData(wchar_t *carModel)
 {
-	for (int i = 0; i < (sizeof carModelDict / sizeof(struct CarModelData)); ++i) {
-		if (!wcscmp(carModelDict[i].carModel, carModel)) {
-			return &carModelDict[i];
+	for (int i = 0; i < (sizeof ACC_CarModelDict / sizeof(struct ACC_CarModelData)); ++i) {
+		if (!wcscmp(ACC_CarModelDict[i].carModel, carModel)) {
+			return &ACC_CarModelDict[i];
 		}
 	}
 	return 0;
 }
 
-int populateCarModelData(struct CarModelData *retdata, int maxRpm)
+int populateCarModelData(struct ACC_CarModelData *retdata, int maxRpm)
 {
-	struct CarModelData *data = lookupCarModelData(retdata->carModel);
+	struct ACC_CarModelData *data = lookupCarModelData(retdata->carModel);
 	if (data) {
 		*retdata = *data;
 	} else {
@@ -238,11 +206,11 @@ int doSend(int argc, const wchar_t *argv[])
 	}
 
 	struct SimDisplayPacket packet;
-	struct CarModelData cardata = { 0 };
-	int prevStatus = ACC_OFF; // TODO: we could use packet-> status as the previous status...
+	struct ACC_CarModelData cardata = { 0 };
+	int prevStatus = ACC_STATUS_OFF; // TODO: we could use packet-> status as the previous status...
 	while (WaitForSingleObject(sendTimer, INFINITE) == WAIT_OBJECT_0) {
-		if (ACC_LIVE != gra->status && prevStatus == gra->status) continue;
-		if (gra->status != prevStatus && ACC_LIVE == gra->status ) {
+		if (ACC_STATUS_LIVE != gra->status && prevStatus == gra->status) continue;
+		if (gra->status != prevStatus && ACC_STATUS_LIVE == gra->status ) {
 			cardata.carModel = sta->carModel;
 			populateCarModelData(&cardata, sta->maxRpm);
 		}
@@ -425,7 +393,7 @@ int doCsv(int argc, const wchar_t *argv[])
 		struct ACCStatic *sta = (struct ACCStatic *)(binBuffer + sizeof(struct ACCPhysics) + sizeof(struct ACCGraphics));
 		DWORD readBytes;
 		while (ReadFile(input, binBuffer, binBufferSize, &readBytes, NULL) && readBytes == binBufferSize) {
-			struct CarModelData data;
+			struct ACC_CarModelData data;
 			data.carModel = sta->carModel;
 			populateCarModelData(&data, sta->maxRpm);
 			if (!WriteFile(output, csvRecord,
