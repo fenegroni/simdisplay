@@ -18,12 +18,18 @@
     <ClCompile Include="SimDisplayCLI.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\ACCData.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\ACCSharedMemory.h">
+    <ClInclude Include="..\..\..\include\ACCData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\SimDisplayProtocol.h">
+    <ClInclude Include="..\..\..\include\ACCSharedMemory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Device\include\SimDisplayProtocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
