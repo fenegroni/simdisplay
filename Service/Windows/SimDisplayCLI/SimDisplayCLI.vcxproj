@@ -150,13 +150,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\ACCData.c" />
+    <ClCompile Include="..\..\src\ACCData.c" />
     <ClCompile Include="SimDisplayCLI.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Device\include\SimDisplayProtocol.h" />
-    <ClInclude Include="..\..\..\include\ACCData.h" />
-    <ClInclude Include="..\..\..\include\ACCSharedMemory.h" />
+    <ClInclude Include="..\..\..\Device\include\SimDisplayProtocol.h" />
+    <ClInclude Include="..\..\include\ACCData.h" />
+    <ClInclude Include="..\..\include\ACCSharedMemory.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -3,6 +3,17 @@
 In this folder you will find a folder for each supported device.
 
 |===
-|`README.adoc` |This very document.
-|`UnoR3/` |All you need to know to build and run the UnoR3 device.
+|File name | Description
+
+|`README.adoc`
+|This very document.
+
+|`UnoR3/`
+|All you need to know to build and run the UnoR3 device.
+
+|`include/`
+|The reference SimDisplayProtocol.h include file 
+that is used to define the protocol between a device
+and the service.
+
 |===

@@ -5,14 +5,23 @@ that supports several elements of the dashboard.
 
 In this folder you will find all you need to build and run Simdisplay on this device.
 
-== File and Folder Reference
-
 |===
-|README.adoc |This very document.
-|ArduinoIDE |The Arduino IDE project is in there.
-|SimDisplay_UnoR3.fzz |The breadboard wiring diagram; you will need Fritzing 0.9 to edit this. 
-|SimDisplay_UnoR3_BOM.html |The Bill Of Materials (BOM) exported from Fritzing.
-|SimDisplay_UnoR3_breadboard.png |The breadboard wiring diagram, exported as a picture.
+|File name | Description
+
+|README.adoc
+|This very document.
+
+|UnoR3.ino
+|The Arduino code is in there.
+
+|SimDisplay_UnoR3.fzz
+|The breadboard wiring diagram; you will need Fritzing 0.9 to edit this. 
+
+|SimDisplay_UnoR3_BOM.html
+|The Bill Of Materials (BOM) exported from Fritzing.
+
+|SimDisplay_UnoR3_breadboard.png
+|The breadboard wiring diagram, exported as a picture.
 |===
 
 == Shop for and Build your device

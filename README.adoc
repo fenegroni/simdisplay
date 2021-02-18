@@ -5,7 +5,7 @@ image::https://raw.githubusercontent.com/fenegroni/fenegroni.github.io/master/1.
 A simracing dashboard created using Arduino to show telemetry
 from the racing simulator Assetto Corsa Competizione in real time.
 
-Copyright (C) 2020  Filippo Erik Negroni
+Copyright (C) 2021  Filippo Erik Negroni
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -45,7 +45,9 @@ The README file in that folder has more detail.
 
 === Build the Service
 
-Open the solution file `SimDisplay.sln` in folder `Service/Windows/visualstudio` using Visual Studio 2019.
+Open the solution file `SimDisplay.sln` in folder
+https://github.com/fenegroni/simdisplay/tree/master/Service/Windows[`Service/Windows`]
+using Visual Studio 2019.
 
 Build the solution which will create a Windows 64-bit Console application called SimDisplayCLI.
 
@@ -55,7 +57,7 @@ More detailed instructions and information can be found in the README file in th
 
 and upload the firmware to your device
 
-Under `Device/UnoR3/ArduinoIDE/SimDisplay` you will find the Arduino IDE project file `SimDisplay.ino`.
+Under https://github.com/fenegroni/simdisplay/tree/master/Device/UnoR3[`Device/UnoR3`] you will find the Arduino IDE project file `UnoR3.ino`.
 
 This is the embedded software that will run on the Arduino Uno R3 board microcontroller:
 it receives telemetry data from the Windows host via the USB-to-serial interface
@@ -68,4 +70,4 @@ The Arduino IDE is free software and can be downloaded from `https://www.arduino
 You can compile and upload the project to your Arduino board from the avialble Web Editor without
 installing the IDE on your computer if you so wish.
 
-For more information, refer to the README.adoc file in the folder `Device/UnoR3/arduino-ide`.
+For more information, refer to the README.adoc file in the folder https://github.com/fenegroni/simdisplay/tree/master/Device/UnoR3[`Device/UnoR3`].
