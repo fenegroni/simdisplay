@@ -1,4 +1,5 @@
 = SimDisplay
+:toc:
 
 image::https://raw.githubusercontent.com/fenegroni/fenegroni.github.io/master/1.jpg[lcddisplay]
 
