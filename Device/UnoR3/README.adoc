@@ -1,4 +1,4 @@
-= `Device/UnoR3`
+= `UnoR3`
 
 The Arduino Uno R3 is a fairly versatile and cheap device
 that supports several elements of the dashboard.
