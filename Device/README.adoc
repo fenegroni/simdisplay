@@ -1,4 +1,4 @@
-= `Simdisplay/Device`
+= `Device`
 
 In this folder you will find a folder for each supported device.
 
