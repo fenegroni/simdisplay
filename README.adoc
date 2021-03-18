@@ -1,7 +1,7 @@
 = SimDisplay
 :toc:
-:toc-title:
-:toclevels:1
+:toc-title: 
+:toclevels: 1
 
 image::https://raw.githubusercontent.com/fenegroni/fenegroni.github.io/master/1.jpg[lcddisplay]
 
