@@ -1,4 +1,4 @@
-= SimDisplay
+= SimDisplay image:https://github.com/fenegroni/simdisplay/workflows/Build Windows Service/badge.svg[link=https://github.com/fenegroni/simdisplay/actions]
 :toc:
 :toc-title: 
 :toclevels: 1
