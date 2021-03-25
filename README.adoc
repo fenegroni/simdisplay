@@ -3,8 +3,6 @@
 :toc-title: 
 :toclevels: 1
 
-image::https://raw.githubusercontent.com/fenegroni/fenegroni.github.io/master/1.jpg[lcddisplay]
-
 A simracing dashboard created using Arduino to show telemetry
 from the racing simulator Assetto Corsa Competizione in real time.
 
