@@ -1,7 +1,7 @@
 /*
 simdisplay - A simracing dashboard created using Arduino to show shared memory telemetry from Assetto Corsa Competizione.
 
-Copyright (C) 2020  Filippo Erik Negroni
+Copyright (C) 2021  Filippo Erik Negroni
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define SIMDISPLAYPROTOCOL_VERSION 0x0100
-#define SIMDISPLAYPROTOCOL_VERSION_STRING "1"
+#define SIMDISPLAYPROTOCOL_VERSION 0x00010000
+#define SIMDISPLAYPROTOCOL_VERSION_STRING "1.0.0"
 
 /* Requires uint8_t and uint16_t, found in stdint.h */
 
