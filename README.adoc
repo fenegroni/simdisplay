@@ -1,5 +1,5 @@
-= SimDisplay {badge-build_windows_service} {badge-build_for_unor3}
-:toc:
+= SimDisplay
+:toc: preamble
 :toc-title: 
 :toclevels: 1
 // Refs:
@@ -7,6 +7,8 @@
 :url-actions: https://github.com/fenegroni/simdisplay/actions
 :badge-build_windows_service: image:{url-workflows}/Build Windows Service/badge.svg?branch=master[link={url-actions}]
 :badge-build_for_unor3: image:{url-workflows}/Build for UnoR3/badge.svg?branch=master[link={url-actions}]
+
+{badge-build_windows_service} {badge-build_for_unor3}
 
 A simracing dashboard created using Arduino to show telemetry
 from the racing simulator Assetto Corsa Competizione in real time.
