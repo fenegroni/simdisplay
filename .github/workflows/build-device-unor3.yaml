@@ -1,0 +1,20 @@
+name: Build for UnoR3
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1.0.0
+      - name: Install platform
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
+      # Finally, we compile the sketch, using the FQBN that was set
+      # in the build matrix.
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn arduino:avr:uno Device/UnoR3/UnoR3.ino
