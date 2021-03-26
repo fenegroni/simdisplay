@@ -9,7 +9,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
+        uses: arduino/setup-arduino-cli@v1.1.1
       - name: Install platform
         run: |
           arduino-cli core update-index
