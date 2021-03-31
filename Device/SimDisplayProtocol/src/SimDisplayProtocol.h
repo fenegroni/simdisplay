@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define SIMDISPLAYPROTOCOL_VERSION 0x00010000
 #define SIMDISPLAYPROTOCOL_VERSION_STRING "1.0.0"
 
-/* Requires uint8_t and uint16_t, found in stdint.h */
+/* include <inttypes.h> for uint8_t, uint16_t */
 
 #pragma pack (push)
 #pragma pack (1)
