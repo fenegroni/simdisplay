@@ -1,10 +1,7 @@
 name: Build Windows Service
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  [push, pull_request]
 
 env:
   # Path to the solution file relative to the root of the project.
