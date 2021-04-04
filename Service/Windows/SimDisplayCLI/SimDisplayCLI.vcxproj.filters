@@ -23,9 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Device\include\SimDisplayProtocol.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\ACCSharedMemory.h">
       <Filter>Header Files</Filter>
     </ClInclude>

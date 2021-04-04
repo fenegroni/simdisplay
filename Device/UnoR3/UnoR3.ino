@@ -23,7 +23,7 @@
 
 #include <LiquidCrystal.h>
 
-#include <SimDisplayProtocol.h>
+#include <simdisplay-proto.h>
 
 // Pinouts for the four groups of outputs: Redline, Gear, Damage and Lcd.
 

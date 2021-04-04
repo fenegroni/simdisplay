@@ -33,7 +33,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "../../include/ACCSharedMemory.h"
 #include "../../include/ACCData.h"
-#include "../../../Device/SimDisplayProtocol/src/SimDisplayProtocol.h"
+#include <simdisplay-proto.h>
 
 enum mapAcpmf_action {
 	MAPACPMF_CREATE,

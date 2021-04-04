@@ -14,18 +14,13 @@ jobs:
         run: |
           arduino-cli core update-index
           arduino-cli core install arduino:avr
+      - name: Install LiquidCrystal library
+        run: |
           arduino-cli lib install LiquidCrystal
-      # Finally, we compile the sketch, using the FQBN that was set
-      # in the build matrix.
-      - name: Setup Zip tool
-        uses: montudor/action-zip@v0.1.1
-      - name: Zip SimDisplayProtocol library
-        run: zip -r SimDisplayProtocol.zip SimDisplayProtocol
-        working-directory: Device
-      - name: Install SimDisplayProtocol library
+      - name: Install simdisplay-proto library
         run: |
           arduino-cli config init
           arduino-cli config set library.enable_unsafe_install true
-          arduino-cli lib install --zip-path Device/SimDisplayProtocol.zip
+          arduino-cli lib install --git-url http://github.com/fenegroni/simdisplay-proto
       - name: Compile Sketch
         run: arduino-cli compile --fqbn arduino:avr:uno Device/UnoR3/UnoR3.ino
