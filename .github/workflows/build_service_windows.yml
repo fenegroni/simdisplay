@@ -18,6 +18,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v1.1.1
+    
+    - name: Install simdisplay-proto library
+      run: |
+        arduino-cli config init
+        arduino-cli config set library.enable_unsafe_install true
+        arduino-cli lib install --git-url http://github.com/fenegroni/simdisplay-proto
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
