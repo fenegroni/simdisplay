@@ -96,7 +96,7 @@
       <ConformanceMode>true</ConformanceMode>
       <SupportJustMyCode>false</SupportJustMyCode>
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;$(HOMEDRIVE)$(HOMEPATH)\OneDrive\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,7 +110,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;$(HOMEDRIVE)$(HOMEPATH)\OneDrive\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,7 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;$(HOMEDRIVE)$(HOMEPATH)\OneDrive\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,7 +148,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <FloatingPointModel>Fast</FloatingPointModel>
       <ExceptionHandling>false</ExceptionHandling>
-      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(HOMEDRIVE)$(HOMEPATH)\Documents\Arduino\libraries\simdisplay-proto\src;$(HOMEDRIVE)$(HOMEPATH)\OneDrive\Documents\Arduino\libraries\simdisplay-proto\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
