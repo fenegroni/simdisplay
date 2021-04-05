@@ -1,11 +1,32 @@
 = How to contribute to Simdisplay
 
-We manage our project in a Kanban board on Trello:
+We use standard GitHub tools to track Issues, Projects and Discussions. 
 
-https://trello.com/b/TgArFCJ1/simdisplay
+== Issues
 
-The board is public but only contributors can add and resolve issues.
+Issues have labels to categorise them: tech debt, bugs, enhancements, documentation, etc.
 
-Take a look at the list of items in the Backlog column
-and if you want to contribute, get in touch so we can track the item
-you'd like to help with.
+You can either browse the
+https://github.com/fenegroni/simdisplay/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22[shortlist of open issues good for first time contributors]
+or if there aren't any of interest to you, just browse https://github.com/fenegroni/simdisplay/issues?q=is%3Aopen+is%3Aissue[the list of open issues].
+
+You can filter those issues further, e.g. by <<Project>>.
+
+== Milestones
+
+Milestones are created for releases and named using https://semver.org/[SemVer], e.g. v0.10.0, v1.0.0.
+
+Milestones are assigned to issues when a new release is imminent to ensure we don't release prematurely.
+
+== Projects
+
+Every issue should be assigned to a Project so that their progress can be tracked.
+See https://github.com/fenegroni/simdisplay/projects?query=is%3Aopen+[the full list of open Projects].
+
+Once an issue is assigned to a Project, it needs to be triaged in order for it to appear in the project's _To Do_ column.
+
+== Full time contributors
+
+If you intend to work on one or two issues, you can do so by cloning this repository, do your work, then raise a pull request.
+
+If you contribute more regularly, we will ask you to become a collaborator.
