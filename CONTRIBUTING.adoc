@@ -10,7 +10,7 @@ You can either browse the
 https://github.com/fenegroni/simdisplay/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22[shortlist of open issues good for first time contributors]
 or if there aren't any of interest to you, just browse https://github.com/fenegroni/simdisplay/issues?q=is%3Aopen+is%3Aissue[the list of open issues].
 
-You can filter those issues further, e.g. by <<Project>>.
+You can filter those issues further, e.g. by <<Projects>>.
 
 == Milestones
 
